@@ -1,0 +1,33 @@
+
+
+$(document).ready(function() {
+    $('form').each(function (i, el) {
+        if ($(el).attr('method') == 'post' || /_submit\/?/.test($(el).attr('action'))) {
+            if ($('input[name="darksecret"]', $(el)).length == 0) {
+                $('<input type="hidden" name="darksecret" value="' + $.cookie('darksecret') + '"/>').appendTo(el);
+            }
+        }
+    });
+
+    $('a').each(function (i, el) {
+        if (/_submit/.test($(el).attr('href'))) {
+            if ($(el).attr('href').indexOf('darksecret') == -1) {
+                if ($(el).attr('href').indexOf('?') == -1) {
+                    $(el).attr('href', $(el).attr('href') + '?darksecret=' + $.cookie('darksecret'));
+                } else {
+                    $(el).attr('href', $(el).attr('href') + '&darksecret=' + $.cookie('darksecret'));
+                }
+            }
+        }
+    });
+
+});
+
+
+$.ajaxSetup({
+    beforeSend: function (xhr)
+    {
+        //alert(2);
+        xhr.setRequestHeader("Darksecret", $.cookie('darksecret'));
+    }
+});

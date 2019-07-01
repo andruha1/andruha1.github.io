@@ -1,0 +1,309 @@
+// Автоматический выбор домена
+function domainAutoSelector() {
+    // Домен не будет выбран
+    if ($.cookie("selectedDomain") == null ||
+        $.cookie("selectedDomain").length == 0 ||
+        !document.getElementById('domain_' + $.cookie("selectedDomain"))) {
+
+        // Если только 1 домен, выбираем его
+        var domains = $('.domain-list a');
+        if (domains.length == 1) {
+            domains.get(0).click();
+            //selectDomain(domains.get(0));
+        }
+    }
+    else {
+        // alert(document.getElementById('domain_'+$.cookie("selectedDomain")));
+        //selectDomain(document.getElementById('domain_' + $.cookie("selectedDomain")));
+        document.getElementById('domain_' + $.cookie("selectedDomain")).click();
+    }
+}
+
+
+function disabledButton(button, time) {
+    var buttonLocal = button
+
+    if (buttonLocal === undefined) {
+        buttonLocal = document.getElementsByName("submitNameForDisabled")[0];
+    }
+
+    buttonLocal.disabled = true;
+    buttonLocal.classList.add("disabled-custom")
+
+    if (time !== undefined) {
+        setTimeout(function () {
+            buttonLocal.disabled = false;
+            buttonLocal.classList.remove("disabled-custom")
+        }, time)
+    }
+}
+
+function domainGeneralSelect(el) {
+
+    $('#showDomains').text(el.innerHTML);
+    $('#choosenDomainPre').text('Выбран домен ');
+
+}
+
+function checkMaxLength(id, relId, btnId) {
+    var el = jQuery(id);
+    var remain = jQuery(relId);
+    var disabledBtn = jQuery(btnId)
+    var remainLength = remain.text() * 1;
+    el.bind('keyup', function () {
+        var valLength = el.val().length * 1;
+        var diff = remainLength - valLength;
+        remain.text(diff);
+        if (diff < 0) {
+            remain.addClass('length-limit-warn');
+            disabledBtn.addClass('disabledBtn').attr('disabled', true);
+        }
+        else {
+            remain.removeClass('length-limit-warn');
+            disabledBtn.removeClass('disabledBtn').attr('disabled', false);
+        }
+    })
+}
+
+var showNews = function () {
+    var newsLink = jQuery('.ajaxcontent', '#newsListMainPage');
+    newsLink.each(function () {
+        jQuery(this).click(function (e) {
+            var new_id = jQuery(this).attr('rel');
+            var new_title = jQuery(this).text();
+            var href = jQuery(this).attr('href');
+
+            if (jQuery('#new_dialog_' + new_id).length == 0) {
+                var newDialog = jQuery('<div/>')
+                newDialog.appendTo(document.body)
+                    .attr('id', 'new_dialog_' + new_id)
+                    .addClass('loading')
+                    .dialog({
+                        title: new_title,
+                        dialogClass: 'news_dialog',
+                        height: 600,
+                        width: 700
+                    })
+                    .load(href + ' #new_id_' + new_id, function () {
+                        newDialog.removeClass('loading');
+                    });
+                newDialog.dialog('open');
+            } else {
+                jQuery('.news_dialog').hide();
+                var newDialog = jQuery('#new_dialog_' + new_id);
+
+                newDialog.parents('.news_dialog').show();
+
+                if (newDialog.text().length == 0) {
+                    newDialog.load(href + ' #new_id_' + new_id, function () {
+                        newDialog.removeClass('loading');
+                    });
+                }
+            }
+            e.preventDefault();
+        })
+    })
+}
+jQuery(document).ready(function () {
+    showNews();
+    $('.ico-hint').click(function (e) {
+        e.stopPropagation();
+    });
+
+    /* разметка событий - счёт кликов по иконке "Оплата" #243247, подзадача Аренда серверов, Домены*/
+    $('#cp_pay', $('.iconBlockAll')).click(function () {
+        var productname = $.cookie("product_name");
+        if ((productname == 'dedic') || (productname = 'domain')) {
+            sendGAdata('eventAction9');
+        }
+        $.cookie("vhvidget2step", '', {expires: -1, path: "/"});
+        $.cookie("domainvidget2step", '', {expires: -1, path: "/"});
+    });
+
+    if ($('#quick_launch_menu').length > 0) {
+        $('.panelV2 .iconBlock > li').draggable({
+            opacity: .5,
+            helper: function () {
+                // console.log($(this).find('.main_icon').attr('class').replace('main_icon ', ''))
+                // console.log($(this).html())
+                return $('<li class="ico-draggable"></li>').addClass($(this).find('.main_icon').attr('class').replace('main_icon ', '')).html($(this).html());
+            },
+            appendTo: 'body',
+            revert: 'invalid',
+            zIndex: 10000,
+            cursorAt: {
+                left: 0,
+                top: 0
+            }
+        })
+        var quick_launch_menu = $('#quick_launch_menu');
+        var quick_launch_list = [];
+        var makeQuickLaunchList = function () {
+            quick_launch_list = [];
+            $('li', quick_launch_menu).each(function () {
+                var item = $(this).attr('rel');
+                quick_launch_list.push(item);
+            })
+            //console.log(quick_launch_list);
+        }
+        makeQuickLaunchList();
+        quick_launch_menu.sortable({
+            placeholder: 'ui-state-highlight',
+            distance: 5,
+            //revert: true,
+            //helper:'clone',
+            stop: function (event, ui) {
+                //makeQuickLaunchList();
+                quick_launch_menu.removeClass('quick_launch_menu_out');
+                if (ui.position.top > 35)
+                    ui.item.remove();
+                makeQuickLaunchList();
+                if ($('li', quick_launch_menu).length == 0) {
+                    if (quick_launch_menu.data('explanation') != undefined) {
+                        quick_launch_menu.data('explanation').appendTo(quick_launch_menu);
+                    }
+                }
+                $.post(' /main/changeQuickLaunchPad_ajax/', {
+                    str: quick_launch_list.join()
+                });
+            },
+            out: function (event, ui) {
+                quick_launch_menu.addClass('quick_launch_menu_out');
+            },
+            over: function (event, ui) {
+                quick_launch_menu.removeClass('quick_launch_menu_out')
+            }
+        }).droppable({
+            activeClass: 'quick_launch_active',
+            hoverClass: 'quick_launch_hover',
+            drop: function (event, ui) {
+                //console.log(ui);
+                if ($('.explanation', quick_launch_menu).length) {
+                    var explanation = $('.explanation', quick_launch_menu).remove();
+                    quick_launch_menu.data('explanation', explanation);
+                }
+                var draggableItem = ui.draggable.attr('rel');
+                var draggableItemClass = ui.draggable.attr('class');
+
+                if ($.inArray(draggableItem, quick_launch_list) == -1) {
+                    $("<li></li>").addClass(draggableItemClass).attr('title', ui.draggable.text()).attr('rel', ui.draggable.attr('rel')).html(ui.draggable.html()).appendTo(this);
+                    quick_launch_list.push(draggableItem);
+                    $.post(' /main/changeQuickLaunchPad_ajax/', {
+                        str: quick_launch_list.join()
+                    });
+                }
+            }
+        });
+    }
+});
+
+
+$(function () {
+    $(".js-install-package").on("click", function () {
+        var package_name = $(".js-package-name[rel='" + $(this).attr('rel') + "']").html();
+        var parts = $(this).attr('rel').split(';');
+        if ($(this).data('packages')) {
+            package_install_init(package_name, parts[0], $(this).data('packages'));
+        } else {
+            ajaxLoaderOn('Производится поиск существующих программ…');
+            var $that = $(this);
+            $.ajax({
+                url: '/programs/info/?package=' + parts[0] + '&plan=' + parts[1],
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    $that.data('packages', data['packages'] ? data['packages'] : false);
+                    package_install_init(package_name, parts[0], $that.data('packages'), parts[2] ? parts[2] : false);
+                    ajaxLoaderOff();
+                },
+                error: function () {
+                }
+            });
+        }
+    });
+
+    $(".js-install-program-input-version").live('click', function () {
+        var prop = document.pack_info[$(this).val()];
+        $(".js-package-install-info").html('<ul>' +
+            '<li>' + $(".js-install-program-need-root-" + prop.only_docroot).html() + '</li>' +
+            '<li>' + $(".js-install-program-need-mysql-" + prop.require_db).html() + '</li>' +
+            ((prop.show_size) ? '<li>Занимает ' + prop.size + ' Мб на диске.</li>' : '') +
+            '</ul>');
+        $(".js-package-install-root").html($(".js-install-program-root-field-need-" + prop.only_docroot).html());
+        $(".js-package-install-program-name").html($("label[for='" + $(this).attr('id') + "']").html()).attr('href', '/programs/install/?id=' + $(this).val());
+    });
+
+    $("#addProgrammForm").live('submit', function () {
+        ajaxLoaderOn('Производится установка программы...');
+    });
+});
+
+function package_install_init(name, code, packages, title) {
+    var package_href = '/programs/install/?id=' + title;
+    $(".js-package-install-dialog").remove();
+
+    $("body").append('<form method="post" id="addProgrammForm" style="display:none;" ' +
+        'action="/programs/install_submit/" class="js-package-install-dialog usable_form db-create-form">' +
+        '<input type="hidden" name="darksecret" value="' + $.cookie('darksecret') + '"/>' +
+        '<fieldset class="js-package-install-dialog-form">' +
+
+        '</fieldset></form>');
+
+    var $dialog = $(".js-package-install-dialog");
+
+    $dialog.attr('title', 'Установка программы «<a class="js-package-install-program-name" href="' + package_href + '">' + name + '</a>»');
+    var $_dialog = $(".js-package-install-dialog-form");
+    $_dialog.html('<legend>Установка программы «' + name + '»</legend>');
+
+    $_dialog.append('<div class="js-package-install-info b-package-install-info">Info</div>' +
+        '<p><b>Выберите версию</b>:<b class="required">*</b></p>');
+    document.pack_info = {};
+    for (var i = 0; i < packages.length; i++) {
+        var pack = packages[i];
+        var id = 'pack_' + code + '_' + i;
+        $_dialog.append('<p class="b-install-version">' +
+            '<input class="js-install-program-input-version' +
+            (pack.recommended == 'y' ? ' js-install-program-input-autoclick' : '') +
+            '" type="radio" id="' + id + '" name="title" value="' + pack.title + '"/>&nbsp;' +
+            '<label class="e-label-default" for="' + id + '">' +
+            pack.name + ' ' + ((pack.show_version == 1) ? pack.version : '') +
+            '</label></p>');
+        document.pack_info[pack.title] = {
+            require_db: pack.require_db,
+            only_docroot: pack.only_docroot,
+            size: pack.size
+        };
+    }
+    $_dialog.append($(".js-install-templates-domain").html());
+    $_dialog.append('<div class="js-package-install-root b-package-install-root">Root</div>');
+    $_dialog.append($(".js-install-program-buttonfield").html());
+    $dialog
+        .dialog({
+            modal: true,
+            width: 600,
+            autoOpen: false
+        })
+        .dialog('open');
+    $(".js-install-program-input-autoclick").click();
+}
+
+//Сортировка таблиц
+$(document).ready(function () {
+    if ($('.js-sortable-table').length > 0 && $('.js-sortable-table th:first-child').hasClass('empty-cell') && $('.js-sortable-table tr').length > 2) {
+        $('.js-sortable-table').tablesorter({
+            sortList: [
+                [1, 0]
+            ]
+        });
+    }
+    else {
+        if ($('.js-sortable-table').length > 0) {
+            $('.js-sortable-table').tablesorter({
+                sortList: [
+                    [0, 0]
+                ]
+            });
+        }
+
+    }
+});

@@ -1,0 +1,148 @@
+/**
+ * @author design
+ */
+jQuery.validator.addMethod("isSubDomains", function(value, element){
+        var flag = 0;
+        var newValue = value.split('.');
+        //console.log(newValue);
+        for (var i = 0 ; i < newValue.length; i++ ) {
+            if(jQuery.trim(newValue[i]).length < 5) {
+                flag +=1;
+            }
+        }
+        if (flag == newValue.length) {
+            flag = true;
+        } else {
+            flag = false;
+        };
+        return this.optional(element) || flag;
+}, "В имени поддомена может быть максимум 63 символа");
+jQuery.validator.addMethod("isAfewEmails", function(value, element){
+        var flag = 0;
+        var newValue = value.split(',');
+        //console.log(newValue);
+        for (var i = 0 ; i < newValue.length; i++ ) {
+            if(/^(((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?)$/i.test(jQuery.trim(newValue[i]))) {
+                flag +=1;
+            }
+        }
+        if (flag == newValue.length) {
+            flag = true;
+        } else {
+            flag = false;
+        };
+        return this.optional(element) || flag;
+}, "…некорректное имя ящика…");
+
+jQuery.validator.addMethod("isDomainName", function(value, element){
+    //var test = /^[\w\d]+[\w\d-\.!\.]+[\w\d]+$/ig;
+    //console.log(test.test(value));
+    //return this.optional(element) || /^[\w\d]+[\w\d-\.(?!\.)]+[\w\d]+$/.test(value);
+    return this.optional(element) || /^[!\.{2,}]$/.test(value);
+}, "…недопустимые символы…");
+
+jQuery.validator.addMethod("isEmailCyrDom", function(value, element){
+        return this.optional(element) || /^([\w\d][\-._0-9a-z]*[\w\d]|[\w\d])@(([\w\d][\-._0-9a-z]*[\w\d]\.)+[a-z]+)|([\w\d][\-._0-9a-z]*[\w\d]|[\w\d])@((?:[а-яё][\-._0-9а-яё]*[а-яё]\.)+([a-zа-яё]+))$/i.test(value);
+}, "…недопустимые символы…");
+/*
+ * проверка исключительно на буквы и цифры
+ */
+jQuery.validator.addMethod("wordCharacter", function(value, element){
+    return this.optional(element) || /^[\w\d]+$/i.test(value);
+}, "…недопустимые символы…");
+/*
+ * модифицированная проверка. буквы, цифры, дефисы, точки. Без дефисов и точек в начале и конце.
+ */
+jQuery.validator.addMethod("wordAdvCharacter", function(value, element){
+    return this.optional(element) || /^[\w\d]+([\w\d-\.]*[\w\d]+)?$/i.test(value);
+}, "…недопустимые символы…");
+/*
+ * проверка исключительно на буквы и цифры
+ */
+jQuery.validator.addMethod("notCyrillic", function(value, element){
+    return this.optional(element) || /^[^а-яёА-ЯЁ]+$/i.test(value);
+}, "…сиволы кириллицы недопустимы…");
+/*
+ * значения полей не должны совпадать
+ */
+jQuery.validator.addMethod("notEqualTo", function(value, element, param){
+    return value != $(param).val();
+}, "…совпадения полей недопустимы…");
+/**
+ * IPv4
+ */
+jQuery.validator.addMethod("IPv4", function(value, element){
+    return this.optional(element) || /^[\d\.]+$/i.test(value);
+}, "…недопустимые символы, допустимы только цифры и точка…");
+/**
+ * проверка имени файла
+ */
+jQuery.validator.addMethod("filename", function(value, element) {
+    return this.optional(element) || !/[\\/:\*\?"<>\|]/.test(value);
+}, "…укажите корректное имя файла…");
+/**
+ * проверка имени файла linux
+ */
+jQuery.validator.addMethod("filename_linux", function(value, element) {
+    return this.optional(element) || !/[\/]/.test(value);
+}, "…укажите корректное имя файла…");
+
+jQuery.validator.addMethod("udate", function(value, element) {
+    return this.optional(element) || !/Invalid|NaN/.test(new Date(value)) || /^\d{2}[.]\d{2}[.]\d{4}$/.test(value);
+}, "…укажите корректную дату в формате DD.MM.YYYY…");
+
+jQuery.validator.addMethod("letter_country_code", function(value, element) {
+    return this.optional(element) || /^[a-zA-Z]{2}$/.test(value);
+}, "…укажите корректный буквенный код страны состоящий из двух букв латинского алфавита…");
+
+jQuery.validator.addMethod("namesGeoObjects", function(value, element) {
+    return this.optional(element) || /^[\s]*[a-zA-Z]+[a-zA-Z0-9\s-]*$/.test(value);
+}, "…название должно начинаться с буквы или указаны недопустимые символы, допустимы только латинские буквы, цифры, дефисы, пробелы…");
+
+jQuery.validator.addMethod("orgNames", function(value, element) {
+    return this.optional(element) || /^[a-zA-Z0-9\s-]+$/.test(value);
+}, "…недопустимые символы, допустимы только латинские буквы, цифры, дефисы, пробелы…");
+
+jQuery.validator.addMethod("companylink", function(value, element) {
+
+    return this.optional(element) ||
+        /^https?:\/\/(www\.)?([a-z0-9-]+\.)*2gis\.(ru|com)(\/\S*|\/?)$/.test(value)   ||
+        /^https?:\/\/(www\.)?([a-z0-9-]+\.)*yp\.ru(\/\S*|\/?)$/.test(value)   ||
+        /^https?:\/\/(www\.)?([a-z0-9-]+\.)*dnb\.ru(\/\S*|\/?)$/.test(value) ||
+        /^https?:\/\/(www\.)?([a-z0-9-]+\.)*kompass\.com(\/\S*|\/?)$/.test(value);
+}, "…указана неверная ссылка, необходимо указать ссылку на профиль компании в сервисах 2gis.ru, www.yp.ru, www.dnb.ru, www.kompass.com…");
+
+jQuery.validator.addMethod("needhttp", function(value, element) {
+    return this.optional(element) ||
+        /^https?:\/\//.test(value);
+}, "…ссылка должна начинаться с https://или http://…");
+
+jQuery.validator.addMethod("isEmailForSsl", function(value, element){
+    return this.optional(element) || value == 'admin@'+jQuery('select[name="domain"] option:selected').val()
+        || value == 'webmaster@'+jQuery('select[name="domain"] option:selected').val()
+        || value == 'administrator@'+jQuery('select[name="domain"] option:selected').val()
+        || value == 'hostmaster@'+jQuery('select[name="domain"] option:selected').val()
+        || value == 'postmaster@'+jQuery('select[name="domain"] option:selected').val();
+}, "…указан неверный почтовый ящик…");
+/*
+ * 
+ */
+jQuery.validator.addClassRules({
+    isSubDomainName: {
+        required: true,
+        isSubDomains: true
+    },
+    isAfewEmails : {
+        required: true,
+        isAfewEmails: true
+    },
+    isThereWhiteSpaces : {
+    	whiteSpaces : true
+    },
+    isThereNotWordCharacter : {
+    	wordCharacter : true
+    },
+    isCyrillic : {
+    	notCyrillic : true
+    }
+});

@@ -1,0 +1,38 @@
+function RC_feedback_target_select(){
+	if($(".js-feedback-target-select").data('name'))
+		$(".js-feedback-target-select").attr('name', $(".js-feedback-target-select").data('name'));
+	var RC_feedback_target_select_vals = {
+		feedback:{
+			service: '-- Выберите тему --',
+			service_worker: 'Работа сотрудников',
+			service_equipment: 'Оборудование и сервисы',
+			service_order: 'Порядок оказания услуг',
+			service_other: 'Прочее'
+		}
+	};
+	$(".js-feedback-target-subselect").remove();
+	var val = $(".js-feedback-target-select").val();
+
+	if( RC_feedback_target_select_vals[val] ){
+		var name = $(".js-feedback-target-select").attr('name');
+		$(".js-feedback-target-select").data('name', name).attr('name', '');
+		$(".js-feedback-target-select").after($(document.createElement('div')).attr('class','js-feedback-target-subselect b-feedback-target-subselect'));
+		var select = $(document.createElement('select'))
+			.css('width',$(".js-feedback-target-select").css('width'))
+			.attr('name', name);
+		for( var v in RC_feedback_target_select_vals[val] ){
+			$(document.createElement('option'))
+				.attr('value', v)
+				.html(RC_feedback_target_select_vals[val][v])
+				.appendTo(select);
+		}
+		select.appendTo(".js-feedback-target-subselect");
+	}
+}
+
+$(function(){
+	RC_feedback_target_select();
+	$(".js-feedback-target-select").change(function(){
+		RC_feedback_target_select();
+	});
+});

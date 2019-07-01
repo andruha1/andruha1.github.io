@@ -1,0 +1,2519 @@
+// function fnShowProps(obj, objName){
+//   var result = "";
+//   for (var i in obj) // обращение к свойствам объекта по индексу
+//   result += objName + "." + i + " = " + obj[i] + "\n";
+//   alert(result);
+// }
+
+Number.prototype.in_list = function(o){ for(var i in o){ if(this == o[i]) return true; } return false; }
+
+var CallbackRegistry = {};
+
+function scriptRequest(url, onSuccess/*, onError*/) {
+
+    var scriptOk = false; // флаг, что вызов прошел успешно
+
+    var callbackName = 'cb' + String(Math.random()).slice(-6);
+
+    // укажем это имя в URL запроса
+    url += ~url.indexOf('?') ? '&' : '?';
+    url += 'callback=CallbackRegistry.' + callbackName;
+
+    // ..и создадим саму функцию в реестре
+    CallbackRegistry[callbackName] = function(data) {
+        scriptOk = true; // обработчик вызвался, указать что всё ок
+        delete CallbackRegistry[callbackName]; // можно очистить реестр
+        onSuccess(data); // и вызвать onSuccess
+    };
+
+    // эта функция сработает при любом результате запроса
+    // важно: при успешном результате - всегда после JSONP-обработчика
+    function checkCallback() {
+        if (scriptOk) return; // сработал обработчик?
+        delete CallbackRegistry[callbackName];
+        if (arguments.length == 3) {
+            var onError = arguments[2];
+            onError(url); // нет - вызвать onError
+        }
+    }
+
+    var script = document.createElement('script');
+    script.async = true;
+    // в старых IE поддерживается только событие, а не onload/onerror
+    // в теории 'readyState=loaded' означает "скрипт загрузился",
+    // а 'readyState=complete' -- "скрипт выполнился", но иногда
+    // почему-то случается только одно из них, поэтому проверяем оба
+    script.onreadystatechange = function() {
+        if (this.readyState == 'complete' || this.readyState == 'loaded') {
+            this.onreadystatechange = null;
+            setTimeout(checkCallback, 0); // Вызвать checkCallback - после скрипта
+        }
+    }
+
+    // события script.onload/onerror срабатывают всегда после выполнения скрипта
+    script.onload = script.onerror = checkCallback;
+    script.src = url;
+
+    document.body.appendChild(script);
+}
+
+var gaConfiguration = {                             //конфигурации 1-8 используются для разметки GA на сайте
+    'eventAction9': "clicked payment button",       //иконка "Оплата" на базовой странице ПУ
+    'eventAction10': "visited payment page lk",     //загрузка стр. "Оплата"
+    'eventAction11': "chose payment method",        //выбор способа оплаты
+    'eventAction12': "visited account props page",  //переход по ссылке "заполните реквизиты" на стр. "Оплата"
+    'eventAction13': "filled props form",           //кнопка "готово" в форме заполнения реквизитов
+    'eventAction14': "clicked make payment link"    //клик по ссылке "пополнить счет" на странице реквизитов (для пользователя, только что заполневшего реквизиты)
+}
+function sendGAdata(id){
+//    var productname = $.cookie('product_name');
+    var eventaction = gaConfiguration[id];
+
+    if (typeof (eventaction) != "undefined"/* && typeof (productname) != 'undefined'*/) {
+    /*      switch (productname) {
+            case 'shared hosting, standard-wordpress':
+            case 'shared hosting, standard-joomla':
+                eventaction += ', shared hosting, standard';
+                break;
+            case 'shared hosting, reactive-1c':
+                eventaction += ', shared hosting, reactive';
+                break;
+            default:
+                eventaction += ', ' + productname;
+    }*/
+        if (typeof(ga) == 'function') {
+//          ga("send", "event", "user", eventaction, "product_name:" + productname + "; timestamp:" + Date.now());
+            ga("send", "event", "user", eventaction, "timestamp:" + Date.now());
+        }
+    }
+}
+
+function checkCyrillic(){
+    $(".js-check-cyrillic").each(function(){
+        var txt = $(this).text();
+        if (/[а-яА-Я]/.test(txt)) {
+            $(this).text("«" + txt + "»");
+        }
+    });
+}
+
+function fcreateShowHintPass(_target){
+    var el = $("<div/>", {class: "wrap-ico-showhint", title: "Показать пароль", 'click': function(e){
+        $(this).toggleClass("is-visible-password");
+        var $input = $(this).next();
+        if ($input.prop("type") != "password") {
+            $input.prop("type","password");
+            $(this).attr('title', 'Показать пароль')
+        } else {
+            $input.prop("type", "text");
+            $(this).attr('title', 'Скрыть пароль')
+        }
+    }});
+    _target.before(el);
+}
+
+$.fn.trimval = function(keyCode){
+	if( keyCode && keyCode == 13 && $(this).is('textarea') ) return true;
+	if( !keyCode || (!keyCode.in_list([32])) ){ // реагирует на всё, кроме пробела
+		var n_val = $(this).val().trim();
+		if( n_val != $(this).val() ) $(this).val(n_val);
+	};
+}
+
+$(function(){
+	$("input,textarea", ".js-fix-white-space")
+		.blur(function(){ $(this).trimval(); })
+		.keydown(function(e){
+			if( $(this).is('input') && e.keyCode == 13 ) $(this).trimval(13);
+		})
+		.keyup(function(e){ $(this).trimval(e.keyCode); });
+});
+
+$.datepicker.setDefaults($.datepicker.regional['ru']);
+
+function showVDSExtParams(blockId, textblockId, collapsedText, uncollapsedText) {
+    if (ShowHide(blockId) == 'none') {
+        ChangeText(textblockId, collapsedText);
+    } else {
+        ChangeText(textblockId, uncollapsedText);
+    }
+}
+
+function ShowHide(elementId) {
+    var element = document.getElementById(elementId);
+    if (element.style.display != "block") {
+        element.style.display = "block";
+        return 'block';
+    }
+    else {
+        element.style.display = "none";
+        return 'none';
+    }
+}
+
+
+function VisibilitySwitch(elementId) {
+    var element = document.getElementById(elementId);
+    if (element.style.visibility != "visible") {
+        element.style.visibility = "visible";
+    }
+    else {
+        element.style.visibility = 'hidden';
+    }
+}
+
+function ChangeText(elementId, str) {
+    var element = document.getElementById(elementId);
+    element.innerHTML = str;
+}
+
+function popup(linkObj, w_w, w_h) {
+    if (arguments.length == 4) {$.cookie(arguments[3], null, {path: '/', domain: '.sweb.ru'});}
+    window.open(linkObj.href, linkObj.target, 'width=' + w_w + ',height=' + w_h + 'location=1,toolbar=1,menubar=1,status=1,scrollbars=1');
+    return false
+}
+
+function confirmAction(text) {
+    var r = confirm(text);
+    return r
+}
+
+// Помощь, так сказать
+function showHelp(materialId, title){
+
+    JsHttpRequest.query(
+        'https://mcp.sweb.ru/account/getHelp_ajax/', // backend
+        {'id' : materialId,
+            'darksecret':$.cookie('darksecret')},
+
+        function(result, errors) {
+
+            if (result['status'] == 1) {
+
+                var el = $("#helpElement").get(0);
+                // Удаляем если есть
+                if (el) {
+                    el.parentNode.removeChild(el);
+                }
+
+                // создаем
+                $('<div id="helpElement"'+(title ? ' title="'+title+'"' : '')+'>' + result['html'] + '</div>').appendTo('body');
+
+                $("#helpElement").dialog({
+                    dialogClass:'sw-help-dialog',
+                    bgiframe: true,
+                    //height: 400,
+                    width: 350,
+                    modal: true
+                });
+
+            } else {
+            }
+
+        },
+        true
+    );
+}
+
+function acp_account_showOrders() {
+    JsHttpRequest.query(
+        '/accounts/getOrders_ajax/', // backend
+        {},
+
+        function(result, errors) {
+
+            if (result['status'] == 1) {
+
+                var el = $("#element").get()[0];
+
+                // Удаляем если есть
+                if (el) {
+                    el.parentNode.removeChild(el);
+                }
+
+                // создаем
+                $('<div id="element">' + result['out'] + '</div>').appendTo('body');
+
+                var deleters = $('.ico-acti',$("#element"));
+
+                $("#element").dialog({
+                    position:['center',20],
+                    bgiframe: true,
+                    width: 950,
+                    modal: true,
+                    height: 600
+                });
+
+                //console.log(deleters.length);
+                deleters.click(function(e){
+                    var id = $(this).attr('id').replace('deleter_','');
+                    e.stopPropagation();
+                    if (confirm('Точно!')){
+                        vds_orders_delete(id);
+                    }
+
+                })
+
+            } else {
+            }
+
+        },
+        true
+    );
+}
+
+function acp_vds_showOperationDetails(opId) {
+    JsHttpRequest.query(
+        'https://acp.sweb.ru/vds/operationDetails_ajax/', // backend
+        {'opId' : opId},
+
+        function(result, errors) {
+
+            if (result['status'] == 1) {
+
+                var el = $("#opDetailsElement").get()[0];
+                // Удаляем если есть
+                if (el) {
+                    el.parentNode.removeChild(el);
+                }
+
+                // создаем
+                $('<p id="opDetailsElement" style="white-space:pre;">' + result['out'] + '</p>').appendTo('body');
+
+                $("#opDetailsElement").dialog({
+                    bgiframe: true,
+                    height: 500,
+                    width: 500,
+                    modal: true
+                });
+
+            } else {
+            }
+
+        },
+        true
+    );
+}
+
+function dev_showRevDetails(revId) {
+    var div_name = 'revDetailsElement';
+    dev_makeLoader(div_name);
+
+    JsHttpRequest.query(
+        '/main/revDetails_ajax/', // backend
+        {'revId' : revId},
+
+        function(result, errors) {
+
+            if (result['status'] == 1) {
+
+                $('#' + div_name).html(result['out']);
+
+            } else {
+            }
+
+        },
+        true
+    );
+}
+
+function dev_updateDevel(revId) {
+    var div_name = 'revDetailsElement';
+    dev_makeLoader(div_name);
+
+    JsHttpRequest.query(
+        '/main/updateDevel_ajax/', // backend
+        {'revId' : revId},
+
+        function(result, errors) {
+
+            if (result['status'] == 1) {
+
+                $('#' + div_name).html(result['out']);
+            } else {
+            }
+
+        },
+        true
+    );
+}
+
+
+function dev_testDevel(revId) {
+    var div_name = 'revDetailsElement';
+    dev_makeLoader(div_name);
+
+    JsHttpRequest.query(
+        '/main/testDevel_ajax/', // backend
+        {'revId' : revId},
+
+        function(result, errors) {
+
+            if (result['status'] == 1) {
+
+                $('#' + div_name).html(result['out']);
+
+            } else {
+            }
+
+        },
+        true
+    );
+}
+
+function dev_deploy(revId) {
+    var div_name = 'revDetailsElement';
+    dev_makeLoader(div_name);
+
+    JsHttpRequest.query(
+        '/main/deploy_ajax/', // backend
+        {'revId' : revId},
+
+        function(result, errors) {
+
+            if (result['status'] == 1) {
+
+                $('#' + div_name).html(result['out']);
+
+            } else {
+            }
+
+        },
+        true
+    );
+}
+
+function dev_deploy_prev(revId) {
+    var div_name = 'revDetailsElement';
+    dev_makeLoader(div_name);
+
+    JsHttpRequest.query(
+        '/main/deploy_ajax/', // backend
+        {
+            'revId' : revId,
+            'prev' : true
+        },
+
+        function(result, errors) {
+
+            if (result['status'] == 1) {
+
+                $('#' + div_name).html(result['out']);
+
+            } else {
+            }
+
+        },
+        true
+    );
+}
+
+function dev_makeLoader(div_name) {
+    if (document.getElementById(div_name) == null) {
+        $('<div id="' + div_name + '" style="white-space:pre;"></div>').appendTo("body");
+        $('#' + div_name).dialog({
+            bgiframe: true,
+            height: 600,
+            width: 800,
+            modal: true,
+            autoopen: false
+        });
+    }
+
+
+    $('#' + div_name).html("Идёт загрузка... Загрузка может занять несколько минут.");
+    $('#' + div_name).dialog("open");
+
+}
+
+function vds_orders_delete(orderId) {
+
+    JsHttpRequest.query(
+        '/accounts/order_delete_ajax/', // backend
+        {'orderId' : orderId,
+            'darksecret':$.cookie('darksecret')
+        },
+
+        function(result, errors) {
+
+            if (result['status'] == 1) {
+
+                var el = document.getElementById('tr' + orderId);
+                el.parentNode.removeChild(el);
+
+            } else {
+            }
+
+        },
+        true
+    );
+}
+
+function accounts_comment_add() {
+
+    var comment = document.getElementById('acomment').value;
+    var customerId = document.getElementById('acomment_customer_id').value;
+
+    /*
+     *  Не работает
+     if (comment.length < 2) {
+     alert('Слишком короткий комментарий');
+     return;
+     }*/
+
+    var obj = {};
+    var i = 1;
+    $('#comment_files input[type=file]').each(function() {
+        obj['file' + i] = $(this).get(0);
+        //alert($(this).get(0));
+        i++;
+    });
+
+    obj['comment'] = comment;
+    obj['customer_id'] = customerId;
+
+    //ajaxLoaderOn();
+    document.getElementById('acomments').innerHTML = '<img src="/common/img/ajax-loader1.gif"/>';
+
+    JsHttpRequest.query(
+        '/accounts/comment_add_ajax/', // backend
+        obj,
+
+        function(result, errors) {
+
+            if (result['status'] == 1) {
+
+                getContent('/accounts/getComments_ajax/',
+                    {'customer_id': customerId},
+                    document.getElementById('acomments'));
+            } else {
+                // Если есть ошибка
+                if (result['error']) {
+                    showError(result['error']['text'], result['error']['title']);
+                }
+            }
+
+        },
+        true
+    );
+}
+
+function getContent(url, params, node, callback, errorText, errorHeader) {
+
+    if (!params) {
+        params = {};
+    }
+
+    params['darksecret'] = $.cookie('darksecret');
+
+    JsHttpRequest.query(
+        url, // backend
+        params,
+
+        function(result, errors) {
+            //alert('Yes1');
+
+            if (result && result['status'] && result['status'] == 1) {
+                insertContent(result['out'], node);
+            } else {
+                // Если есть ошибка
+                if (result && result['error']) {
+                    showError(result['error']['text'], result['error']['title']);
+                } else {
+                    if (typeof errorText != 'undefined') {
+                        showError(errorText, errorHeader);
+                    } else {
+                        showError('Произошла ошибка');
+                    }
+                }
+            }
+
+            if (typeof callback == 'function') {
+                callback();
+            }
+        },
+        true
+    );
+}
+
+function insertContent(content, node) {
+
+    //alert(content); alert(node);
+    //typeof "undefined"
+    if (typeof node == "undefined") {
+        document.write(content);
+    } else {
+        node.innerHTML = content;
+    }
+}
+
+function acp_colo_blockServer(server, ip, billing_id) {
+    $.getJSON(
+        '/colo/block_ajax/',
+        {
+            'ip': ip,
+            'billing_id': billing_id
+        },
+        function(data) {
+            var t, s;
+            if (data.js.res) {
+                t = "Успешно!";
+                s = data.js.msg;
+                window.location.reload();
+            } else {
+                t = "Ошибка!";
+                s = "<dl><dt>Код: " + data.js.err + "</dt><dd>\nСообщение: \n" + data.js.msg + "</dd></dl>";
+            }
+            acp_colo_show_msg(t, s);
+        }
+    );
+}
+
+function acp_colo_unBlockServer(server, ip, billing_id) {
+    $.getJSON(
+        '/colo/unblock_ajax/',
+        {
+            'ip': ip,
+            'billing_id': billing_id
+        },
+        function(data) {
+            var t, s;
+            if (data.js.res) {
+                t = "Успешно!";
+                s = data.js.msg;
+                window.location.reload();
+            } else {
+                t = "Ошибка!";
+                s = "<dl><dt>Код: " + data.js.err + "</dt><dd>\nСообщение: \n" + data.js.msg + "</dd></dl>";
+            }
+            acp_colo_show_msg(t, s);
+        }
+    );
+}
+
+function acp_colo_show_msg(t, s) {
+    var div;
+    var id = "colo_service_msg";
+    if (div = $("#" + id)) div = $('<div id="' + id + '">' + s + '</div>');
+    div.appendTo($("body"))
+        .dialog({'title': t});
+}
+function disabledSeoPriceField() {
+    var seoprice = $('#amount');
+    $("#seo_plan").change(function(){
+        var _option = $(this).find("option:selected");
+        //можно условие по data-price большем чем 0
+        if (_option.text() == "SEO-Base") {
+            seoprice.val('').removeAttr("disabled");
+        } else {
+            seoprice.val(Math.floor(_option.data("price"))).prop("disabled", true);
+        }
+    });
+}
+
+/**
+ * Превращает ссылки в ajax'овые - по href подтягивается содержимое jquery dialog-a
+ * colo_service_create_link, colo_service_edit_link, vps_service_create_link, vps_service_reinstall_link, vps_service_changeplan_link
+ */
+function acp_makeajax_links(){
+    $(".js-makeajax-links").click(function () {
+        var $this = $(this);
+        var btn = {};
+        switch ($this.data('type')) {
+            case 'reinstall':
+            case 'changeplan':
+                btn.name = "Переустановить";
+                break;
+            default: btn.name = "Сохранить";
+        }
+
+        $.get(
+            $this.attr('href'),
+            function (data) {
+                acp_services_dialog($this, data, btn);
+            },
+            'html'
+        );
+        $("#" + $this.data("id") + "-service-" + $this.data("type")).dialog('open');
+        return false;
+    });
+}
+    function acp_services_dialog(el, data, btn){
+        var w = el.data('width') || 400;
+        var _service = el.data("id");
+        var _type = el.data("type");
+        var _title = el.attr("title");
+        var _id = "#" + _service + "-service-" + _type;
+        var _idform = "#" + _service + "_service_" + _type + '_form';
+        if (document.getElementById(_id) === null) {
+            $('<div />', {"id": _id.substring(1)}).appendTo($("body"));
+        }
+        var blockdialog = $(_id);
+        blockdialog.dialog({
+            title: _title,
+            width: w,
+            modal: true,
+            buttons: [
+                { text: btn.name,
+                  click: function() {
+                    $.post(
+                        $(_idform).attr('action'),
+                        $(_idform).serialize(),
+                        function(data) {
+                            // после получения любого ответа перезагружаем страницу
+                            location.reload();
+                        },
+                        'json'
+                    );
+                    if (_service == "vps" /*||_service == "seo"*/) { location.reload(); }
+                    $(this).dialog("close");
+                }},
+                { text: "Отмена",
+                  click: function() {
+                    $(this).dialog("close");
+                }}
+                ],
+            close: function(event, ui) {
+                $(this).html("");
+            }
+        });
+        blockdialog.html(data);
+        if (_service == "seo") {
+            //setTimeout(
+                disabledSeoPriceField()
+            //  500);
+        }
+        if ((_service == "colo") || (_id == "#vps-service-create")) {
+            blockdialog.find('select[name="plan"]').change(function () {
+                var optionnewplan = $("#" + _service + "_service_plan_new");
+                if ($(this).val() == "new") {
+                    optionnewplan.attr('disabled', false);
+                } else {
+                    optionnewplan.attr('disabled', true);
+                    optionnewplan.val("")
+                }
+            })
+        }
+    }
+
+function acp_togglePassword(serviceId) {
+    $('#acp-password').toggle();
+    $('#acp-plink').toggle();
+}
+
+function createAccountColoTariffChanged() {
+    if ($("#colo_tariff").attr('value') == 'new') {
+        $('#colo_tariff_new').removeClass('inactive').removeAttr('disabled').focus();
+    } else {
+        $('#colo_tariff_new').attr('disabled', 'yes').addClass('inactive');
+    }
+
+}
+/**
+ * jQuery
+ */
+jQuery(document).ready(function() {
+
+    jQuery('body').eq(0).removeClass('jsoff');
+    if (jQuery.browser.msie) {
+        jQuery('.jslink').hover(function() {
+            jQuery(this).css('color', '#2F78A2');
+        }, function() {
+            jQuery(this).css('color', '#6DC6F2');
+        })
+        jQuery('dd', '.data-list').each(function() {
+            if (jQuery(this).text().length == 0) {
+                jQuery(this).html('<br clear="all" />');
+            }
+        })
+    }
+/*
+    if ($('.phone_mask').length)
+        var phone_mask_set = $(".phone_mask");
+        phone_mask_set.mask('+7 999 9999999', {placeholder: 'X'});*/
+
+    /**
+     * умножаем аттачи (эксклюзивное решение)
+     */
+    // uni/htdocs/cp/js/vds_common.js:8
+    var attacher = $('.js-attacher-link');//, attaches = 1;
+    attacher.click(function(e) {
+        var attaches = $(':file[name="file[]"]', $(this).closest('form')).length;
+        if (attaches < 5) {
+            attaches++;
+            //console.log(attaches);
+            var parent = $(this).parents('.row'),
+                attach = $('<input/>');
+            //console.log(parent);
+            attach.
+                attr({
+                    type: 'file',
+                    size: '10',
+                    name: 'file[]',
+                    id: 'file' + attaches,
+                    style: 'width:100%'
+                });
+            $('<p/>').
+                insertBefore(parent).
+                addClass('row').
+                append(attach);
+            if (attaches == 5) {
+                $(this).hide();
+            }
+        }
+        e.preventDefault();
+    });
+    //
+
+    jQuery('.jslink').each(function() {
+/*        if (jQuery(this).attr('id') == 'additional') {
+            var defaultText = jQuery(this).text();
+            jQuery(this).toggle(function() {
+                jQuery(jQuery(this).attr('related')).slideDown('slow');
+                jQuery(this).text('Скрыть');
+            }, function() {
+                jQuery(jQuery(this).attr('related')).slideUp('slow');
+                jQuery(this).text(defaultText);
+            })
+        }*/
+        //toggle блоку с доменными зонами
+        if($(this).hasClass("js_toggle")) {
+            $(this).click(function(){
+                $(this).text(($(this).text() == $(this).attr("data-open-text")) ? $(this).attr("data-hidden-text") : $(this).attr("data-open-text"));
+                if ($(this).data('related')) {
+                    var hiddenblock = $($(this).data('related'));
+                    hiddenblock.slideToggle(); //to do data-speed ?
+                } else
+                    $(this).next().toggleClass("js-hidden");
+            });
+        }
+    })
+    var closer = jQuery('#closer-pan');
+    var closing = jQuery('#sidebar2');
+    var content = jQuery('#container');
+    if (jQuery('#createPerson').length == 0 && jQuery('#editPerson').length == 0 && jQuery.cookie('collapsed')) {
+        var className = jQuery.cookie('collapsed');
+        content.addClass(className);
+        closer.text('Открыть панель');
+    }
+    closer.click(function() {
+        var panelName = closer.attr('rel')
+        if (closing.is(':visible')) {
+            $.cookie('collapsed', panelName + '-fullwidth', {expire:7,path:'/',domain:'sweb.ru'});
+            closing.slideUp('slow', afterClosing);
+            //console.log($.cookie('collapsed'));
+        } else {
+            $.cookie('collapsed', null, {expire:7,path:'/',domain:'sweb.ru'});
+            content.removeClass(panelName + '-fullwidth');
+            closing.slideDown('slow');
+            closer.text('Убрать панель');
+            //console.log(jQuery.cookie('collapsed'));
+        }
+        // toggleViewLikeTypetable(); //domains
+    })
+    var afterClosing = function(panelName) {
+        var panelName = closer.attr('rel') || 'mcp-panel';
+        content.addClass(panelName + '-fullwidth');
+        closer.text('Открыть панель');
+    }
+
+    if (jQuery('.sortable-table').length > 0) {
+        jQuery('.sortable-table, table:not(.sticky-header)').tablesorter({
+            sortList:[
+                [0,0]
+            ]
+        });
+    }
+
+    jQuery('.hilighted-table tbody tr').hover(function() {
+        jQuery(this).addClass('hilighted');
+    }, function() {
+        jQuery(this).removeClass('hilighted');
+    });
+    var rowsHilighted = jQuery('.hilighted-table tbody tr');
+    jQuery('a', rowsHilighted).click(function(e) {
+        e.stopPropagation();
+    })
+    rowsHilighted.toggle(function() {
+        jQuery(this).addClass('lighted');
+    }, function() {
+        jQuery(this).removeClass('lighted');
+    });
+    /**
+     *
+     */
+    function invoiceDialog(el, source, dialogOptions) {
+        var invoiceTitle = jQuery(el).attr('title');
+        if (jQuery('#invoices').length > 0) {
+            jQuery('#invoices').remove();
+        }
+        //if (jQuery('#invoices').length == 0) {
+        jQuery('body').eq(0).append('<div id="invoices"></div>');
+        //}
+        var dialogOptions;
+        jQuery('#invoices').css('background', '#fff url(/common/img/loader.gif) no-repeat 50% 50%');
+        jQuery('#invoices')
+        .dialog(dialogOptions)
+        .load(jQuery(el).attr('href') + ' ' + source, function() {
+            jQuery('#invoices').css('background', '#fff');
+        });
+        jQuery('#ui-dialog-title-invoices').text(invoiceTitle);
+        jQuery('#invoices').parents('.ui-dialog').show();
+    }
+
+    jQuery('.invoices').live('click', function(e) {
+        e.preventDefault();
+        if (e.which != 3) {
+            invoiceDialog(this, '#invoice_list');
+        }
+    })
+    jQuery('.dbonuses').live('click', function(e) {
+        e.preventDefault();
+        invoiceDialog(this, '#bonuses_list');
+    })
+    jQuery('li > a', '.planTypeList').live('click', function(e) {
+        e.preventDefault();
+        dialogOptions = {
+            width: 500,
+            position: ['right','top'],
+            modal: true,
+            dialogClass: 'tariff-dialog'
+        }
+        invoiceDialog(this, '#tariffEdit', dialogOptions);
+    })
+    jQuery('.invoices').each(function() {
+        jQuery(this).click(function(e) {
+            e.preventDefault();
+            invoiceDialog(this, '#invoice_list');
+        })
+    })
+
+    //jQuery('#domain').autocomplete();
+    //jQuery('html').eq(0).addClass('jsTurnOn');
+    var addServicesOpener = jQuery('.add-services-list .jslink');
+    addServicesOpener.live('click', function() {
+        jQuery(this).next().is(':hidden') ? jQuery(this).next().show('slow') : jQuery(this).next().hide('slow');
+    });
+
+    // замена формата даты при просмотре/создании доменной персоны
+    // нужно также в persons_view поэтому описано зд., а не в dom_persons.js
+    $("#ip-format_birthdate, #ip-format_pass_date, #p-format_pass_date, #p-format_birthdate").each(function(){
+        if ($(this).val().length != $(this).prev().val().length) {
+            replaceServerDateformat($(this));
+        }
+    })
+})
+jQuery(document).ready(function() {
+    $("#pattern").focus();
+
+    var actual_tarifs = ['VIP', 'VIP lite', 'Mail.SW', 'SX-1', 'SX-2', 'SX-4', 'SX-8', 'UMI.SW', 'Power-1000', 'Power-3000', 'Power-6000'];
+
+    jQuery('#actual_tarifs').click(function() {
+        var options = jQuery('#customersPlans option');
+
+        jQuery('#chart_type option[value="StackedColumn2D"]').attr('selected', 'selected');
+        options.attr('selected', '');
+        for (var i = 0; i < actual_tarifs.length; i++) {
+            options.each(function() {
+                if (jQuery(this).val() == actual_tarifs[i]) {
+                    jQuery(this).attr('selected', 'selected');
+                }
+            });
+        }
+    });
+
+    jQuery('#sweb_dealer').click(function() {
+        var options = jQuery('#customersDealers option');
+
+        options.attr('selected', '');
+
+        options.each(function() {
+            if (jQuery(this).val() == 'sweb') {
+                jQuery(this).attr('selected', 'selected');
+            }
+        });
+    })
+})
+jQuery.fn.stickyTable = function() {
+    // $Id: tableheader.js,v 1.16.2.2 2009/03/30 12:48:09 goba Exp $
+    return this.each(function() {
+        tableHeaderDoScroll = function() {
+            if (typeof(tableHeaderOnScroll) == 'function') {
+                tableHeaderOnScroll();
+            }
+        };
+
+        // This breaks in anything less than IE 7. Prevent it from running.
+        if (jQuery.browser.msie && parseInt(jQuery.browser.version, 10) < 7) {
+            return;
+        }
+
+        // Keep track of all cloned table headers.
+        var headers = [];
+
+        // Clone thead so it inherits original jQuery properties.
+        var header = $('thead:not(.tableHeader-processed)', $(this));
+        //console.log(header.parent());
+        var headerClone = header.clone(true).insertBefore(header.parent()).wrap('<table class="sticky-header sticky-enabled"></table>').parent().css({
+            position: 'fixed',
+            top: '0px'
+        });
+        //console.log(headerClone);
+        headerClone = $(headerClone)[0];
+        //console.log(headerClone);
+        headers.push(headerClone);
+
+        // Store parent table.
+        var table = header.parent().get(0);
+        /*console.log(header);
+         console.log(header.parent('table')[0]);
+         console.log(header.parent());*/
+        headerClone.table = table;
+        // Finish initialzing header positioning.
+        tracker(headerClone);
+
+        $(table).addClass('sticky-table');
+        $(this).addClass('tableHeader-processed');
+
+        // Define the anchor holding var.
+        var prevAnchor = '';
+
+        // Track positioning and visibility.
+        function tracker(e) {
+            // Save positioning data.
+            var viewHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+            if (e.viewHeight != viewHeight) {
+                e.viewHeight = viewHeight;
+                e.vPosition = $(e.table).offset().top - 4;
+                e.hPosition = $(e.table).offset().left;
+                e.vLength = e.table.clientHeight - 100;
+                // Resize header and its cell widths.
+                var parentCell = $('th', e.table);
+                $('th', e).each(function(index) {
+                    var cellWidth = parentCell.eq(index).css('width');
+                    // Exception for IE7.
+                    if (cellWidth == 'auto') {
+                        cellWidth = parentCell.get(index).clientWidth + 'px';
+                    }
+                    $(this).css('width', cellWidth);
+                    // hack
+                    $(this).unbind('click');
+                });
+                $(e).css('width', $(e.table).css('width'));
+            }
+
+            // Track horizontal positioning relative to the viewport and set visibility.
+            var hScroll = document.documentElement.scrollLeft || document.body.scrollLeft;
+            var vOffset = (document.documentElement.scrollTop || document.body.scrollTop) - e.vPosition;
+            var visState = (vOffset > 0 && vOffset < e.vLength) ? 'visible' : 'hidden';
+            $(e).css({
+                left: -hScroll + e.hPosition + 'px',
+                visibility: visState
+            });
+
+            // Check the previous anchor to see if we need to scroll to make room for the header.
+            // Get the height of the header table and scroll up that amount.
+            if (prevAnchor != location.hash) {
+                if (location.hash != '') {
+                    var offset = $('td' + location.hash).offset();
+                    if (offset) {
+                        var top = offset.top;
+                        var scrollLocation = top - $(e).height();
+                        $('body, html').scrollTop(scrollLocation);
+                    }
+                }
+                prevAnchor = location.hash;
+            }
+        }
+
+        // Only attach to scrollbars once, even if attachBehaviors is called
+        //  multiple times.
+        if (!$('body').hasClass('tableHeader-processed')) {
+            $('body').addClass('tableHeader-processed');
+            $(window).scroll(tableHeaderDoScroll);
+            $(document.documentElement).scroll(tableHeaderDoScroll);
+        }
+
+        // Track scrolling.
+        tableHeaderOnScroll = function() {
+            $(headers).each(function() {
+                tracker(this);
+            });
+        };
+
+        // Track resizing.
+        var time = null;
+        var resize = function() {
+            // Ensure minimum time between adjustments.
+            if (time) {
+                return;
+            }
+            time = setTimeout(function() {
+                $('table.sticky-header').each(function() {
+                    // Force cell width calculation.
+                    this.viewHeight = 0;
+                    tracker(this);
+                });
+                // Reset timer
+                time = null;
+            }, 250);
+        };
+        $(window).resize(resize);
+    })
+}
+
+function searchParse(){
+
+    var param = location.search;
+
+    if (param.lastIndexOf('?') == -1) {
+        return {};
+    }
+    param = param.substr(1);
+    var matches = param.split('&');
+
+    var arr = {};
+    for (var a=0; a<matches.length; a++) {
+        var matches2 = matches[a].split('=');
+        arr[matches2[0]] = matches2[1];
+    }
+    return arr; // arr;
+}
+function toggleKSSection(el){
+    var nextblock = $(el).next();
+    var cookieName = $(el).attr('id');
+    var _options = {path: '/', domain: '.sweb.ru',expires: 10};
+    if (nextblock.is(":visible")) {
+        arguments.length > 1 ? nextblock.hide() : nextblock.slideUp(500, function(){
+            if (!$("body").hasClass('acp')) {
+                $(el).closest('.k-section').removeClass('k-s-opened').addClass('k-s-closed');
+            }
+        });
+    } else {
+        arguments.length > 1 ? nextblock.show() : nextblock.slideDown(500, function(){
+
+            if (!$("body").hasClass('acp')) {
+                $(el).closest('.k-section').addClass('k-s-opened').removeClass('k-s-closed');
+            }
+        });
+    }
+    setTimeout(function(){
+        if ($("body").hasClass('acp')) {//исторически сложилось 2010-11гг.
+            $.cookie(cookieName, nextblock.is(':hidden') ? 'opened' : 'panclosed', _options)
+        } else {
+            cookieName = (cookieName + "status").toLowerCase();
+            if (!$(el).hasClass("js-onlycookie")) {
+                $.post('/main/changeSetting_ajax/',
+                    {name: cookieName, value: nextblock.is(':hidden') ? 'k-s-closed' : 'k-s-opened'}
+                );
+            }
+            $.cookie(cookieName, nextblock.is(':hidden') ? 'closed' : 'opened', _options);
+        }
+    }, 600);
+}
+/*
+function viewPromoRightviaKSSectionTable(el) {
+    $.post('/main/changeSetting_ajax/',{
+       name: $(el).attr('rel'), value: 'k-s-hidden'
+    });
+}*/
+
+Array.prototype.max = function() {
+    return Math.max.apply(null, this);
+};
+
+Array.prototype.min = function() {
+    return Math.min.apply(null, this);
+};
+
+function divswim($active) {
+    var divswim_wa = $active.innerWidth();
+    var divswim_la = $active.position().left;
+    $active.addClass('active').siblings().removeClass('active');
+    var wrapper = $active.closest('.label-group');
+        wrapper.find('.label-group__bg').animate({
+        width: divswim_wa + 'px',
+        left: divswim_la + 'px'
+    }, 200);
+    var collectId = wrapper.data('group');
+    if (typeof collectId != 'undefined') {
+        //допилить при необходимости нескольких переключалок
+        $("section[rel='"+ collectId+"']").each(function(){
+            if ($(this).attr('id') == $active.find('input').val()) {
+                $(this).show()
+            } else {
+                $(this).hide()
+            }
+        });
+    }
+}
+
+function getCoordCanvasYRect(x, mmin, d, hctx) {
+    if (d > 0) {
+        return Math.round((hctx - (x - mmin) * hctx / d));
+    } else {
+        return (Math.round(hctx / 2) ) //todo
+    }
+}
+
+function axiesLabelnGrid(stepX, data, context, removal, diff, limit, box){
+    var countX = data.length,
+        now = new Date();
+    context.font ="11px Verdana";
+    context.fillStyle = "#000";
+    context.lineWidth = 1;
+    if (removal.left == 0) context.strokeStyle = "#fff"; // widget
+    for (var i =0; i <= countX; i ++) {
+        if (i != countX && removal.left > 0) {
+            context.fillText(new Date(now - 86400 * 1000 * (countX - i)).getDate(), Math.round(i * stepX) + Math.round(stepX * .4) + removal.left, context.canvas.height - Math.round(removal.bottom * 0.5))
+        }
+        context.moveTo(removal.left + i *  Math.round(stepX) + (i != countX ? 0.5 : 0), 0);
+        context.lineTo(removal.left + i * Math.round(stepX) + (i != countX ? 0.5 : -0.5), context.canvas.height - Math.round(removal.bottom * 0.3));
+    }
+
+    var stepY = removal.left > 0 ? Math.round(stepX * 5 / 8) : stepX,
+        hAxe = context.canvas.height - removal.bottom,
+        countY = Math.floor(hAxe / stepY),
+        step = Math.round(diff * stepY / hAxe),
+        currentLabel = Math.round(data.max());
+    for (var j = 0; j <= countY; j ++) {
+        if (j != countY && removal.left > 0) {
+            if (currentLabel > limit) {
+                context.fillStyle = "#f00";
+            } else {
+                context.fillStyle = "#000";
+            }
+            var x0;
+            if (currentLabel < 10) {
+                x0 = removal.left * .45
+            } else {
+                if (currentLabel < 100) {
+                    x0 = removal.left * .3
+                } else {
+                    x0 = removal.left * .15
+                }
+            }
+            context.fillText(currentLabel, Math.round(x0), Math.round((j + 0.7) * stepY));
+        }
+        context.moveTo(0, j * stepY + 0.5);
+        context.lineTo(context.canvas.width, j * stepY  + 0.5);
+        currentLabel = currentLabel - step;
+    }
+    context.stroke();
+
+    // даты в заголовке
+    var oneDate = new Date(now - 86400 * 1000 * countX),
+        yesterday = new Date(now - 86400 * 1000),
+        title = " с " + oneDate.getDate(),
+        months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    if (oneDate.getMonth() != yesterday.getMonth()) {
+        title += " " + months[oneDate.getMonth()];
+    }
+    title += " по " + yesterday.getDate() + " " + months[yesterday.getMonth()];
+    /* h2 */$(box).closest('section').prev().append(title);
+}
+
+function compileThCompareTable(step, i, labels, maxscale) {
+    var th = '',
+        scale = maxscale -  i  * step;
+    if (labels[0] > (scale - step) && labels[0] <= scale) {
+        var rowspan = Math.round((scale - (typeof labels[1] != 'undefined' ? labels[1] : 0))/step);
+        var label = labels.shift();
+        return '<th rowspan="' + rowspan + '">' + label + '</th>'
+    }
+    return '';
+    //return '<th></th>';
+}
+
+function calculateRowspanWithUnlim(amount, kdiff, maxvalue, value){
+    var value = value;
+    if (typeof arguments[4] != 'undefined' && arguments[4]){
+        value = parseInt(value) > parseInt(arguments[4]) ? value : arguments[4];
+    }
+    return Math.floor((1 - value / (maxvalue * kdiff)) * amount) + 1;/*Math.round(amount * 2 / 3 + 1)*/
+}
+
+function  diagrammaForCompareLoad(el, data) {
+    var ids = $(el).data('id').split(','),
+        subj1 = data[ids[0]],
+        subj2 = data[ids[1]],
+        amount = 12;
+        subj1['key'] = ids[0]; subj2['key'] = ids[1];
+
+    if (typeof subj1 != 'undefined' && typeof subj2 != 'undefined') {
+        var onescale = false,   // subj1['max'] == subj2['max'],
+            kdiff = 3; // коэффициент наглядности отличия бесконечности от максимально ВОЗМОЖНОГО счётного значения (subj.max)
+        var tbody = $(el).find('tbody'),
+            _html = '',
+        //thead
+            thead_html = '<tr>';
+        /* при $future_amount_process || $current_amount_process || $future_RAM_per_process || $future_amount_process == Null, значение переменной - бесконечность. */
+        if (subj1['current'] == 'NaN' || subj1['future'] == 'NaN')  {
+            thead_html += '<th class="unlimitedly" rowspan="'+ calculateRowspanWithUnlim(amount, kdiff, subj1.max ,subj1['current'] == 'NaN' ? subj1.future : subj1.current, onescale ? (subj2.current == 'NaN' ? subj2.future : subj2.current) : false) +'">∞</th><td></td>';
+        } else {
+            thead_html += '<td colspan="2"></td>';
+        }
+        if (subj1['current'] == 'NaN')  {
+            subj1['current'] = subj1['max'] * kdiff;
+            thead_html += '<td class="colored-current" rowspan="' + (amount + 1) + '" ></td>';
+            subj1['limitedly1'] = false;
+        } else {
+            thead_html += '<td></td>';
+            subj1['limitedly1'] = true;
+        }
+        if (subj1['future'] == 'NaN') {
+            subj1['future'] = subj1['max'] * kdiff;
+            thead_html += '<td class="colored-blue" rowspan="' + (amount + 1) + '"></td>';
+            subj1['limitedly2'] = false;
+        } else {
+            thead_html += '<td></td>';
+            subj1['limitedly2'] = true;
+        }
+        thead_html += '<td></td>';
+
+        if (onescale) {
+            thead_html += '<td colspan="3"></td>';
+        } else {
+            thead_html += '<td class="noborder"></td>';
+            if (subj2['current'] == 'NaN' || subj2['future'] == 'NaN') {
+                thead_html += '<th class="unlimitedly" rowspan="' + calculateRowspanWithUnlim(amount, kdiff, subj2.max ,subj2['current'] == 'NaN' ? subj2.future : subj2.current) + '">∞</th><td></td>';
+            } else {
+                thead_html += '<td colspan="2"></td>';
+            }
+        }
+        if (subj2['current'] == 'NaN') {
+            subj2['current'] = subj2['max'] * kdiff;
+            thead_html += '<td class="colored-current" rowspan="' + (amount + 1) + '"></td>';
+            subj2['limitedly1'] = false;
+        } else {
+            thead_html += '<td></td>';
+            subj2['limitedly1'] = true;
+        }
+        if (subj2['future'] == 'NaN') {
+            subj2['future'] = subj2['max'] * kdiff;
+            thead_html += '<td class="colored-blue" rowspan="' + (amount + 1) + '"></td>';
+            subj2['limitedly2'] = false;
+        } else {
+            thead_html += '<td></td>';
+            subj2['limitedly2'] = true;
+        }
+            thead_html += '<td></td>';
+
+        var isunlim_table1 = (subj1['current'] > subj1['max']) ||(subj1['future'] > subj1['max']),
+            isunlim_table2 = (subj2['current'] > subj2['max']) || (subj2['future'] > subj2['max']);
+        if (isunlim_table1 || isunlim_table2) {
+            /*if (isunlim_table1) {subj1['maxscale'] = subj1['max']}
+            if (isunlim_table2) {subj2['maxscale'] = subj2['max']}*/
+            thead_html += "</tr>";
+        } //else {
+            subj1['maxscale'] = -subj1['current'] > -subj1['future'] ? subj1['future'] : subj1['current'];
+            subj2['maxscale'] = -subj2['current'] > -subj2['future'] ? subj2['future'] : subj2['current'];
+        //}
+        subj1['step'] =/* Math.round*/(subj1 ['maxscale'] / amount);
+        subj2['step'] =/* Math.round*/((onescale ? subj1['maxscale'] : subj2['maxscale'] ) / amount);
+
+        // scale Y
+        var labels1 = [], labels2 = [];
+        if (onescale) {
+            if (subj2['limitedly1']) labels1.push(parseInt(subj2['current']) <= subj2['max'] ? parseInt(subj2['current'])  : subj2['max']);
+            if (subj2['limitedly2']) labels1.push(parseInt(subj2['future']) <= subj2['max'] ? parseInt(subj2['future'])  : subj2['max']);
+        } else {
+            if (subj2['limitedly1']) labels2.push(parseInt(subj2['current']) <= subj2['max'] ? parseInt(subj2['current'])  : subj2['max']);
+            if (subj2['limitedly2']) labels2.push(parseInt(subj2['future']) <= subj2['max'] ? parseInt(subj2['future'])  : subj2['max']);
+        }
+        //if (ids[0] != 'cpu') {
+        if (subj1['limitedly1']) labels1.push(parseInt(subj1['current']) <= subj1['max'] ? parseInt(subj1['current']) : subj1['max']);
+        if (subj1['limitedly2']) labels1.push(parseInt(subj1['future']) <= subj1['max'] ? parseInt(subj1['future']) : subj1['max']);
+        //}
+        var labels = labels1.sort(function(a, b){if (a < b) return 1; if (a > b) return -1; return 0}).filter(function(item, index, arr) { return item != arr[index - 1]; });
+        var labels2scale = labels2.sort(function(a, b){if (a < b) return 1; if (a > b) return -1; return 0}).filter(function(item, index, arr) { return item != arr[index - 1]; });
+
+        //tbody
+        for (var i = 0; i < amount; i++) {
+            var scale1 = subj1 ['maxscale'] - i * subj1['step'],
+                scale2 = onescale ? scale1 : (subj2 ['maxscale'] - i * subj2['step']);
+            var row = "<tr>";
+            if (ids[0] == 'cpu' && subj1['limitedly1'] && subj1['limitedly2']) {
+                row += '<th>' + (scale1 <= subj1['max'] ? Math.round(scale1) : "") + '</th>'
+            } else {
+                row += compileThCompareTable(subj1["step"], i, labels, subj1['maxscale']);
+            }
+            row += '<td></td>';
+
+            if (parseInt(subj1['current']) <= scale1 && subj1["limitedly1"]) {
+                if (parseInt(subj1['current']) > (scale1 - subj1['step'])) {
+                    row += '<td class="colored-current" rowspan=' + (amount - i) + '></td>';
+                } else {
+                    row += '<td></td>';
+                }
+            }
+
+            if (parseInt(subj1['future']) <= scale1 && subj1["limitedly2"]) {
+                if (parseInt(subj1['future']) > (scale1 - subj1['step'])) {
+                    row += '<td class="colored-blue" rowspan=' + (amount - i) + '></td>';
+                } else {
+                    row += '<td></td>';
+                }
+            }
+            if (onescale) {
+               row +=  '<td></td><td></td><td></td><td></td>';
+            } else {
+                row += '<td></td><td class="noborder"></td>';
+                row += compileThCompareTable(subj2["step"], i, onescale ? labels : labels2scale, subj2['maxscale']);
+                row += '<td></td>';
+            }
+
+            if (parseInt(subj2['current']) <= scale2 && subj2['limitedly1']) {
+                if (parseInt(subj2['current']) > (scale2 - subj2['step'])) {
+                    row += '<td class="colored-current" rowspan=' + (amount - i) + '></td>';
+                } else {
+                    row += '<td></td>';
+                }
+            }
+
+            if (parseInt(subj2['future']) <= scale2 && subj2["limitedly2"]){
+                if (parseInt(subj2['future']) > (scale2 - subj2['step'])) {
+                    row += '<td class="colored-blue" rowspan=' + (amount - i) + '></td>';
+                } else {
+                    row += '<td></td>';
+                }
+            }
+            row += '<td></td></tr>';
+            _html += row;
+        }
+        _html += '<tr class="labels"><td></td><td colspan="4"><span>' + subj1["label"] + '</span></td><td></td><td></td><td colspan="4"><span>' + subj2["label"] + '</span></td>';
+
+        tbody.html(thead_html + _html);
+    }
+}
+
+function diagrammaForCompare(dataObj, context, wctx){
+    var hctx = context.canvas.height;
+    context.clearRect(0, 0, context.width, hctx);
+    context.width = wctx;
+    //console.log(dataObj);
+    var leftMargin = 72,
+        rightMargin = 2,
+        topMargin = 1,
+        bottomMargin = 2,
+        stepX = Math.round(( wctx - leftMargin )/ ( dataObj.mmax + rightMargin) ),
+        stepY = Math.round( context.canvas.height/ (topMargin + dataObj.countY * 3 + bottomMargin )), //3: recommendData, currentData, space
+        x0 = leftMargin,
+        y0 = hctx - bottomMargin * stepY,
+        removal = 6; // длина "риски"
+    // grid
+    for (var i = 0; i <= dataObj.mmax; i++ ) {
+        context.beginPath();
+        var x = leftMargin + i * stepX;
+        context.strokeStyle = ( (i % 2) == 0 ) ? "#aaa" : "#ccc";
+        context.moveTo(x, topMargin * stepY);
+        context.lineTo(x, ( hctx - Math.round(bottomMargin * stepY - (i == 0 ? 0 : removal/*0.3*/))));//if bottomMargin > 0
+        context.stroke();
+    }
+    context.lineWidth = 1;
+    context.beginPath();context.strokeStyle = "#ccc";
+    context.moveTo(x0, y0 );
+    context.lineTo(leftMargin + (1 + dataObj.mmax) * stepX, hctx - bottomMargin * stepY);
+    context.stroke();
+    // data
+    for (var j = 0; j<dataObj.countY; j++) {
+        var key = dataObj.axis[j][0],
+            y = y0 - (dataObj.countY -j) * 3 * stepY;
+        //риски с эскиза, по желанию трудящихся маркетологов
+        context.strokeStyle = "#ccc";
+        context.moveTo(x0 - removal/*Math.round(0.4 * stepX)*/, y + stepY);context.lineTo(x0, y + stepY);context.stroke();
+        //собстна диаграммы
+        context.fillStyle = "#7ac522";
+        context.fillRect(x0, y, (dataObj.recommend[key] > dataObj.mmax ? dataObj.mmax + 1 : dataObj.recommend[key] ) * stepX, stepY);
+        context.fillStyle = "#FE491A";
+        context.fillRect(x0, y + stepY, (dataObj.current[key] > dataObj.mmax ? dataObj.mmax + 1 : dataObj.current[key] ) * stepX, stepY);
+
+    }
+    // axe X text
+    context.font ="italic 11px Verdana";
+    context.fillStyle = "#666";
+    for (var j=1; j <= dataObj.mmax; j++) {
+        if ((dataObj.mmax <= 20) || (j % 2 == 0))
+            context.fillText(j, x0 + j * stepX -removal, y0 + stepY + removal);
+    }
+    context.font ="italic 12px Verdana";
+    //context.fillText("∞", Math.round(x0 + (j + 0.25) * stepX), Math.round(y0  + 0.3 * stepY));
+    //axe Y text
+    for (var j = 0; j<dataObj.countY; j++) {
+        var key = dataObj.axis[j][0],
+            label = dataObj.axis[j][1],
+            y = y0 - (dataObj.countY -j) * 3 * stepY;
+        context.fillText(label, Math.round(removal * 1.5), y + stepY)
+    }
+}
+
+jQuery(document).ready(function() {
+    $('#stat_sticky_table').stickyTable();
+
+    var sidebarOpener = jQuery('.acp-sidebar .k-s-title').not('.data-noscroll');
+    sidebarOpener.each(function(){
+        var cookieName = ($(this).attr('id') + "status").toLowerCase();
+        var nextblock = $(this).next();
+        $('a', $(this)).click(function(e){e.stopPropagation();});
+
+        if ($.cookie(cookieName) && (!$(this).hasClass('js-onlycookie'))) {
+            if ((nextblock.is(':visible') && $.cookie(cookieName) == 'closed') || (!nextblock.is(':visible') && $.cookie(cookieName) == 'opened')) {
+                //alert("change status pls: visible-" + nextblock.is(':visible') + " status: " + $.cookie(cookieName))
+                toggleKSSection(this, true); //аргумент true для toggle без анимации
+            }
+        }
+        $(this).click(function(){
+            toggleKSSection(this);
+            });
+        });
+/*
+    $(".js-hidetrick").click(function(){
+        viewPromoRightviaKSSectionTable(this);
+    });*/
+
+    if (jQuery('body').eq(0).hasClass('acp')) {
+        sidebarOpener.each(function() {
+            var cookieById = jQuery(this).attr('id');
+            if (jQuery.cookie(cookieById) != 'panclosed') {
+                jQuery(this).parent().addClass(jQuery.cookie(cookieById));
+            } else {
+                jQuery(this).parent().removeClass(jQuery.cookie(cookieById));
+            }
+        })
+    }
+    var StatLegendHeader = jQuery('#StatLegend dt .jslink');
+    jQuery('#StatLegendTitle').toggle(function() {
+        jQuery('#StatLegend').slideDown();
+    }, function() {
+        jQuery('#StatLegend').slideUp();
+    })
+    StatLegendHeader.each(function() {
+        jQuery(this).click(function() {
+            jQuery(this).parent().next('dd').is(':hidden') ?
+                (jQuery('#StatLegend dd').slideUp(),jQuery(this).parent().next('dd').slideDown())
+                :
+                (jQuery('#StatLegend dd').slideUp())
+        })
+    })
+
+    jQuery('#StatSqlLogger_block').hide();
+
+    jQuery('#StatSqlLogger_switcher').toggle(function() {
+        jQuery('#StatSqlLogger_block').slideDown();
+    }, function() {
+        jQuery('#StatSqlLogger_block').slideUp();
+    })
+
+    jQuery('#ballance-details').live('click', function() {
+        jQuery('#ballance-data').is(':hidden') ?
+            jQuery('#ballance-data').show('slow')
+            :
+            jQuery('#ballance-data').hide('slow');
+    })
+    var timeout;
+    jQuery('#ballance-data').live('mouseover', function() {
+        clearTimeout(timeout);
+        //jQuery('#ballance-data').show();
+    })
+    jQuery('#ballance-data').live('mouseout', function() {
+        timeout = window.setTimeout(function() {
+            jQuery('#ballance-data').hide('slow')
+        }, 1000);
+    })
+    jQuery('#ballance-details').live('mouseout', function() {
+        timeout = window.setTimeout(function() {
+            jQuery('#ballance-data').hide('slow')
+        }, 1000);
+    })
+    jQuery('#showDomains').click(function() {
+        jQuery('#domainwrap').toggle('slow');
+    })
+    jQuery(document.body).click(function(e) {
+        var target = e.target;
+
+        if (target.id != 'showDomains') {
+            jQuery('#domainwrap').hide();
+        }
+
+    });
+    $(".cookie_setter").click(function(){
+        var cookie_name = $(this).attr("rel");
+        var cookie_value = $(this).data("cookie");
+        var _domain = location.hostname;
+        $.cookie(cookie_name,cookie_value, {
+            domain: _domain,
+            expires: 7,
+            path: '/'
+        });
+    });
+
+    $(".js-postdetails").each(function(){
+        var box = $(this).find(".postaddress"),
+            inp = $(this).find("[name='post_inherit']");
+        if (box.length > 0) {
+            inp.change(function(){
+                if ($(this).val().trim() == "По почте") {
+                    box.removeClass("js-hidden")
+                } else
+                    box.addClass("js-hidden")
+            });
+        }
+    });
+
+
+    //SWDEV-566
+    checkCyrillic();
+
+    if ($(".loadcanvas").length) {
+        var el = document.getElementById("canvasLoad");
+        var limit = $(el).parent().data("limit"),
+            dataIsArray = /,/.test($(el).parent().data("loading")),
+            needremoval = $(el).parent().hasClass('js-loadgrid'),
+            removal = {'left': 40, 'bottom': 36};//'bottom': 20
+        var dataLoad = dataIsArray ? $(el).parent().data("loading").split(',') : [$(el).parent().data("loading")];
+        var ctx = el.getContext("2d"),
+            wctx = ctx.canvas.width - (needremoval ? removal.left : 0 ),
+            hctx = ctx.canvas.height - (needremoval ? removal.bottom : 0 ),
+            stepX = wctx / (dataLoad.length),
+            limit = $(el).parent().data("limit"),
+            allValues = dataLoad.slice(); allValues.push(limit);
+        var mmin = needremoval ? 0 : allValues.min(),
+            d = dataLoad.max() - mmin,
+            pointlimit = getCoordCanvasYRect(limit, mmin, d, hctx);//dataLoad.min() => mmin
+        var colorred = "#FF0E00",
+            colorblue = "#6dc5f2";
+
+        for (var i=0; i<dataLoad.length; i++) {
+            var point = getCoordCanvasYRect(dataLoad[i], mmin, d, hctx),//dataLoad.min() => mmin
+                coordX = i  * Math.round(stepX) + (needremoval ? removal.left : 0),
+                wRect = Math.round(stepX);
+//          var w = (wctx - coordX > 2 *stepX) ? Math.round(stepX) : (wctx - coordX);
+            ctx.fillStyle = colorblue;
+            ctx.fillRect(coordX, point, wRect, hctx);
+            if (point < pointlimit) {
+                ctx.fillStyle = colorred;
+                ctx.fillRect(coordX, point, wRect, pointlimit - point);
+            }
+        }
+        ctx.strokeStyle = "#ccc";
+		ctx.lineWidth = 1;
+        if (needremoval) {
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, hctx, wctx + removal.left, removal.bottom);
+            ctx.fillRect(0, 0 , removal.left, hctx + removal.bottom);
+            axiesLabelnGrid(stepX, dataLoad, ctx, removal, d, limit, el)
+        } else {
+            axiesLabelnGrid(stepX, dataLoad, ctx, {'left': 0, 'bottom': 0}, d, limit, el)
+        }
+        //$(".css-loadgrid").css("background-size", Math.round(stepX) + "px " + (needremoval ? Math.round(stepX * 5 / 8) : Math.round(stepX)) + "px"); // /2 вместо 5/8
+
+        ctx.beginPath();
+        ctx.strokeStyle = "#b1b1b1";
+        ctx.lineWidth = 2;
+        if (!needremoval)  { ctx.moveTo(0, pointlimit); ctx.lineTo(wctx, pointlimit); }
+        ctx.stroke();
+    }
+
+    $(".js-swim-label").each(function() {
+        $(this).on('change', 'input', function () {
+            divswim($(this).closest('label'));
+        });
+        $(this).find('.active').each(function () {
+            divswim($(this));
+        });
+    });
+
+
+    function fUpsaleDomainsTemp(subj) {
+        var h3link = $('#recommend_domains'),
+            upsaledomainsbox = h3link.parent(),
+            lists = $(".upsale-domains", upsaledomainsbox),
+            _data = subj['domains'],
+            brNotAdded = false;
+        h3link.next().removeClass('info-loading');
+        var blockstatus = $.cookie('recommend_domainsstatus');
+        if (blockstatus && (blockstatus == 'opened')) {
+            if (arguments.length == 1) {
+                //scriptRequest initiation
+                lists.slideDown(500)
+            }/* else {
+           if ((!upsaledomainsbox.hasClass('k-s-opened'))) {
+               upsaledomainsbox.addClass('k-s-opened')
+           }
+       }*/
+        }
+
+    }
+
+    //SWDEV-942
+    var h3link = $('#recommend_domains'),
+        upsaledomainsbox = h3link.parent(),
+        nodata;
+
+    // ($.cookie('recommend_domainsstatus') == 'opened') ? upsaledomainsbox.addClass('k-s-opened') : upsaledomainsbox.removeClass('k-s-opened')
+    if (upsaledomainsbox.length) {
+        var baseurl = $("[name='baseurl']").val(),
+            paneltype = $("[name='paneltype']").val(),
+            //cachedata = $("input[name='upsale_domain_component']"),
+            cacheupsaleexist = upsaledomainsbox.find('dt').length;
+        if (cacheupsaleexist == 0) {
+            upsaledomainsbox.css("display", "none")
+            // h3link.next().addClass('info-loading');
+            $.post(
+                '/domains/domainWidget_ajax/',
+                nodata,
+                function(response){
+                    if (typeof response == 'object') {
+                        // fUpsaleDomains(response.js)
+                        fUpsaleDomainsTemp(response.js)
+                    }
+                },
+                'json'
+            ).fail(function(){
+               // no response
+                upsaledomainsbox.slideUp()
+            });
+        } else {
+            ($.cookie('recommend_domainsstatus') == 'opened') ? upsaledomainsbox.addClass('k-s-opened') : upsaledomainsbox.removeClass('k-s-opened')
+        }
+    }
+
+    //SWDEV-1730
+    $("[data-ga-upsale]").click(function(){
+        fGAfromPanel(this);
+    });
+    //SWDEV-1758
+    $("[data-ga-resetcookie]").click(function(){
+        $.cookie($(this).data("ga-resetcookie"), '', { expires: -1 });
+    });
+});
+
+function fGAfromPanel(el){
+    if (typeof ga == 'function') {
+        if ($(el).data("ga-needcookie")) {
+            var cookiename = $(el).data("ga-needcookie");
+            if ($.cookie(cookiename) === null) return false;
+        }
+        var gaparams = $(el).data("ga-upsale").split(";");
+        if (gaparams.length == 2) { gaparams.unshift("panel vidget") }
+        ga("send", "event", gaparams[0], gaparams[1], gaparams[2]);
+
+        if ($(el).data("ga-setcookie")) {
+            var cookiename = $(el).data("ga-setcookie");
+            $.cookie(cookiename, 1, {"path": "/"});
+        }
+    }
+}
+
+function fUpsaleDomains(subj) {
+    //console.log(subj);
+    var h3link = $('#recommend_domains'),
+        upsaledomainsbox = h3link.parent(),
+        lists = $(".upsale-domains", upsaledomainsbox),
+        _data = subj['domains'],
+        brNotAdded = false;
+    h3link.next().removeClass('info-loading');
+    var blockstatus = $.cookie('recommend_domainsstatus');
+    if (blockstatus && (blockstatus == 'opened')) {
+       if (arguments.length == 1) {
+           //scriptRequest initiation
+           lists.slideDown(500)
+       }/* else {
+           if ((!upsaledomainsbox.hasClass('k-s-opened'))) {
+               upsaledomainsbox.addClass('k-s-opened')
+           }
+       }*/
+    }
+    if ((typeof _data != 'undefined') && (_data.length > 0 )) {
+        h3link.remove()
+       //  $(_data).each(function(index){
+       //     if (index < 6 ) {
+       //         var _name = this['name'],
+       //             _link = this['reason'] == 'free' ? '/domains/reging/?dom=' + this['name'] + '&onlyreg=1' : this['link'],
+       //             _price = /*this['price'] >= 1000 ? this["price"].replace(/(\d{3})$/, " $1") : */this['price'];
+       //         var _dt = $('<dt/>', {'class': 'upsale-domainname'}),
+       //             _dd = $('<dd/>');
+       //         lists.append(_dt.html("<a href='" + _link + "'"+ (this['reason'] == 'move' ? " target='_blank'" : "") +" title='" + _name + "'  data-ga-upsale='domain vidget;domain " +((this['reason'] == 'move') ? "transfer" : "reg") + " linkname' data-ga-setcookie='domainvidget2step' onclick='fGAfromPanel(this);'>" + _name + "</a>"));
+       //         if (this['reason'] == 'move') {
+       //             lists.append(_dd.html(/*((typeof _price != 'undefined') ? _price + " <span class=\"rubl\">a</span>" : "") + */"<a href='" + _link + "'"+ (this['reason'] == 'move' ? " target='_blank'" : "")+" class='mcp-btn-link contra' data-ga-upsale='domain vidget;domain transfer button' data-ga-setcookie='domainvidget2step' onclick='fGAfromPanel(this);'>перенести</a>"));
+       //             /*_price => formatPrice*/
+       //             if (brNotAdded) {
+       //                 _dt.addClass('with-border');
+       //                 _dd.addClass('with-border');
+       //                 brNotAdded = false
+       //             }
+       //         } else {
+       //             brNotAdded = true;
+       //             lists.append(_dd.html(((typeof _price != 'undefined') ? _price + " <span class=\"rubl\">a</span>" : "") + "<a href='" + _link + "' class='mcp-btn-link green-btn' data-ga-upsale='domain vidget;domain reg button' data-ga-setcookie='domainvidget2step' onclick='fGAfromPanel(this);'>хочу</a>"));
+       //         }
+       //     }
+       // });
+
+    } else {
+        upsaledomainsbox.slideUp();
+    }
+}
+
+function sayHello(title, text, w) {
+    var w = w || 400;
+    var el = $("#notice_element");
+
+    if (el.length > 0) { el.remove(); }
+    el = $('<div/>', {id: "notice_element", class: 'notice-dialog'});
+    el.html(text).appendTo('body');
+    el.dialog({
+        title: title,
+        autoOpen: false,
+        bgiframe: false,
+        width: w,
+        modal: true
+    });
+    el.dialog('open');
+}
+
+function showConfirm(text, title, callback, element, w) {
+    var el = $('#error_element');
+
+    if (el.length > 0) {
+        el.remove();
+    }
+
+    $('<div id="error_element">' + text + '</div>').appendTo('body');
+
+    var title = title || '', element = element || '', width = w || 300;
+
+    $("#error_element").dialog({
+        title: title,
+        autoOpen: false,
+        bgiframe: false,
+        width: width,
+        modal: true,
+        dialogClass:'error-dialog',
+        buttons: {
+            "OK": function() {
+                if (typeof callback == 'function') {
+                    callback();
+                }
+                $(this).dialog("close");
+            },
+            "Отмена": function() {
+                $(this).dialog("close");
+            }
+        }
+    });
+    $("#error_element").dialog('open');
+}
+
+function showError(text, title, element, w) {
+    var el = $('#error_element');
+
+    if (el.length > 0) {
+        el.remove();
+    }
+
+    $('<div id="error_element">' + text + '</div>').appendTo('body');
+
+    var title = title || '', element = element || '', width = w || 300;
+
+    $("#error_element").dialog({
+        title: title,
+        autoOpen: false,
+        bgiframe: false,
+        width: width,
+        modal: true,
+        dialogClass:'error-dialog',
+        buttons: {
+            "OK": function() {
+                $(this).dialog("close");
+            }
+        }
+    });
+    $("#error_element").dialog('open');
+}
+
+function showNotice(text, title, element, w) {
+    var el = $('#notice_element');
+
+    if (el.length > 0) {
+        el.remove();
+    }
+
+    var w = w || 300;
+
+    $('<div id="notice_element">' + text + '</div>').appendTo('body');
+
+    $("#notice_element").dialog({
+        title: title,
+        autoOpen: false,
+        bgiframe: false,
+        width: w,
+        modal: false,
+        dialogClass: 'noticeElement',
+        buttons: {
+            "OK": function() {
+                $(this).dialog("close");
+            }
+        }
+    });
+    $("#notice_element").dialog('open');
+}
+jQuery(document).ready(function() {
+    jQuery('#liveSubmitTariffEdit').live('click', function(e) {
+        jQuery('#tariffsDoEdit').ajaxSubmit();
+        e.preventDefault();
+    })
+    jQuery('#boyan').accordion({
+        collapsible: true,
+        autoHeight: false,
+        active: 4
+    })
+    jQuery('.ico-help-js').live('click', function() {
+        var id = jQuery(this).attr('rel');
+        if (jQuery(this).hasClass('ico-help-ajax')){
+            //тянем помощь с сервера
+			var title = $(this).attr('title') || $(this).attr('alt') || false;
+            showHelp(id, title);
+        } else {
+            // подсказка уже «сидит» в странице
+            jQuery('#hint' + id).dialog({
+                modal:true,
+                dialogClass:'dialog-hint-wrap'
+            });
+            jQuery('#hint' + id).dialog('open');
+        }
+    })
+    jQuery('#dump_submit, #create_submit').dialog({
+        dialogClass: 'db-create-form',
+        autoOpen: false,
+        modal: true,
+        width:500
+    })
+    jQuery('.create-form-dialog').dialog({
+        dialogClass: 'db-create-form',
+        autoOpen: false,
+        modal: true,
+        width:505
+    });
+    jQuery('.show-hidden-password').live('click', function() {
+        showRelHideThis(jQuery(this), '#' + jQuery(this).attr('rel'));
+    })
+    jQuery('.hidden-password .jslink').live('click', function() {
+        showRelHideThis(jQuery(this).parent(), '#' + jQuery(this).attr('rel'));
+    })
+    /* латиница и цифры*/
+    jQuery.validator.addMethod("az09", function(value, element) {
+        return this.optional(element) || /^[\d\w]+$/.test(value);
+    }, "Недопустимые символы");
+    jQuery.validator.addMethod("emailName", function(value, element) {
+        return this.optional(element) || /^[a-z0-9._\-]+$/.test(value);
+    }, "Недопустимые символы");
+    jQuery.validator.addMethod("whiteSpaces", function(value, element) {
+        return this.optional(element) || /^[^\s]+$/.test(value);
+    }, "Не используйте пробелы");
+    jQuery.validator.addMethod("orgWithSpace", function(value, element) {
+        return !(/^[^\s]+$/.test(value));
+    }, "Наименование организации должно состоять как минимум из 2 слов");
+    jQuery.extend(jQuery.validator.messages, {
+        required: "…обязательное поле…",
+        digits: "…только для цифр…",
+        minlength: "…слишком коротко…",
+        maxlength: "…слишком длинно…",
+        email: "…e-mail не соответствует формату…",
+        dateDE: "соблюдайте формат даты, пожалуйста, DD.MM.YYYY",
+        equalTo:'…пароли не совпадают…',
+        rangelength:jQuery.format("Необходимо ввести {0} символов")
+    });
+    var dialogOpener = jQuery('.dialogOpener');
+    dialogOpener.each(function() {
+        jQuery(this).click(function() {
+            jQuery('#' + jQuery(this).attr('rel')).dialog('open');
+        })
+    })
+    /**
+     * navigation
+     */
+    jQuery('#breadcrumbs li').hover(function() {
+        jQuery(this).addClass('sfhover');
+    }, function() {
+        jQuery(this).removeClass('sfhover');
+    });
+    $(".breadcrumbs").click(function(){
+        $.cookie("vhvidget2step", '',{ expires: -1, path: "/" });
+        $.cookie("domainvidget2step", '', { expires: -1, path: "/"});})
+    /**
+     * призыв к замене браузера (IE 6.0, 7.0, Firefox 2.0)
+     */
+    var browserVendor = jQuery.browser;
+    jQuery('#browserChoiceBox');
+    if ((browserVendor.msie && (browserVendor.version == '6.0' || browserVendor.version == '7.0') || browserVendor.version.substr(0, 3) == '1.8' || browserVendor.opera && (browserVendor.version.substr(0, 3) == '9.2' || browserVendor.version.substr(0, 3) == '9.5' || browserVendor.version.substr(0, 3) == '9.6' || browserVendor.version.substr(0, 2) == '8'))) {
+        //alert(browserVendor.version);
+        var browserChoiceBox = jQuery('#browserChoiceBox');
+        if (jQuery.cookie('browserchoice') != null && jQuery.cookie('browserchoice') == '1') {
+            browserChoiceBox.hide();
+        } else {
+            browserChoiceBox.show();
+        }
+        jQuery('#closeBrowserchoice').click(function() {
+            browserChoiceBox.hide();
+            jQuery.cookie('browserchoice', 1, {path:'/',expires:7});
+        })
+    }
+    /**
+     * показывать/прятать соответствующий блок
+     */
+        //var jsOpenList = jQuery('.js_open_hidden');
+    var inSidebarOpener = jQuery('.sidebar1');
+    inSidebarOpener.click(function(e) {
+        var clicked = e.target;
+        if (jQuery(clicked).hasClass('jslink')) {
+            var id = jQuery(clicked).attr('href');
+            //console.log(clicked);
+            if (id != undefined) {
+                jQuery(id).is(':hidden') ?
+                    jQuery(id).slideDown(300)
+                    :
+                    jQuery(id).slideUp(300);
+            }
+            e.preventDefault();
+        }
+    })
+})
+/* end document.ready */
+function showRelHideThis(id, idRel) {
+    //jQuery(id).hide();
+    //jQuery(idRel).show();
+    jQuery(id).addClass('ff_fix_select_hide').removeClass('ff_fix_select_show');
+    jQuery(idRel).addClass('ff_fix_select_show').removeClass('ff_fix_select_hide');
+}
+/**
+ * Показываем/Cкрываем загрузчик
+ */
+function ajaxLoaderOn(text) {
+    var text = text || 'идет загрузка…';
+    if($("#megaloader").length == 0) {
+        $('<div id="megaloader" class="scale"><div class="bg"><span>' + text + '</span></div></div>')
+            .appendTo($('body').eq(0));
+        if (jQuery.browser.msie && jQuery.browser.version == '6.0') {
+            jQuery('select').css('visibility', 'hidden');
+        }
+    }
+}
+
+function ajaxLoaderOff(interval) {
+    var interval = interval || 111;
+    window.setTimeout(function() {
+        $('#megaloader').remove();
+    }, interval)
+    //$('#megaloader').remove();
+    if (jQuery.browser.msie && jQuery.browser.version == '6.0') {
+        jQuery('select').css('visibility', 'visible');
+    }
+}
+function changeInputType(changer, changing) {
+    if (jQuery(changer).length == 0) {
+        var changer = jQuery('<span class="jslink">' + 'показать пароль' + '</span>');
+        changer.insertAfter(jQuery(changing));
+    }
+    var type = jQuery(changing).attr('type');
+    jQuery(changer).click(function() {
+        if (type == 'text') {
+            jQuery(changing).get([0]).type = 'password';
+            jQuery(this).html('показать пароль');
+            type = 'password';
+        } else if (type == 'password') {
+            jQuery(changing).get([0]).type = 'text';
+            jQuery(this).html('скрыть пароль');
+            type = 'text';
+        }
+    })
+}
+function swTabs(el, cookieName) {
+    var options = options || {
+        cookie: {expires: 7, name: cookieName},
+        fx: {opacity: 'toggle'}
+    };
+    jQuery(el).tabs(options);
+}
+var ajaxLoaderOnLoc = function(e) {
+    jQuery(e.target).addClass('loading-local');
+}
+var ajaxLoaderOffLoc = function(e) {
+    jQuery(e.target).removeClass('loading-local');
+}
+
+/**
+ *  Отправка формы ajax'om
+ */
+function ajaxForm(form) {
+    var form = $(form),
+        data = form.serialize();
+    ajaxLoaderOn();
+    $.post(form.attr('action'),data, function(response) {
+        handleAjaxResponseJson(response);
+        ajaxLoaderOff();
+        //console.log(response);
+    }, 'json');
+}
+
+function handleAjaxResponseJson(data) {
+    if(data && data['js'] && (typeof data['js']['error'] || data['js']['notice'])) {
+        $.jGrowl.defaults.position = 'center';
+        if (data.js.error) {
+            $.jGrowl(data.js.error,{sticky:true});
+            $(".e-error-info").remove();
+            $(".e-single_tip_wrp").css('display','none');
+            $("<span class='e-error-info'>" + data.js.error +"</span>").prependTo($(".b-info_block"));
+        }
+        if (data.js.notice) {
+            $.jGrowl(data.js.notice,{sticky:true});
+
+            $('.e-error-info,.js-tip-notice').html('');
+            $('.e-error-info,.js-tip-notice').html(data.js.notice);
+        }
+    }
+
+
+    if (data['js'] && !data['js']['error'] &&
+        (typeof data['js']['to'] != 'undefined') && data['js']['to'] != '') {
+          location.href = data.js.to;
+    }
+}
+
+
+jQuery(document).ready(function() {
+/*    var subscriptionPeriod = jQuery('#subscription_period :radio');
+    subscriptionPeriod.each(function() {
+        jQuery(this).click(function() {
+            if (jQuery(this).val() == 'none') {
+                jQuery('#delivery_none').click();
+                jQuery('#delivery_fieldset').hide();
+                jQuery('#post_address_fieldset').hide();
+            } else {
+                jQuery('#delivery_fieldset').show('slow');
+                if (! jQuery('#delivery_none').is(':checked')) {
+                    jQuery('#post_address_fieldset').show('slow');
+                }
+            }
+        })
+    })
+
+    var subscriptionDelivery = jQuery('#deliveryChoice :radio');
+    subscriptionDelivery.each(function() {
+        jQuery(this).click(function() {
+            if (jQuery(this).attr('id') == 'delivery_none') {
+                //jQuery('#post_inherit_postal').click();
+                jQuery('#post_address_fieldset').hide();
+            } else {
+                jQuery('#post_address_fieldset').show('slow');
+            }
+        })
+    })
+
+    var choosers = jQuery('#addressChoice :radio');
+    choosers.each(function() {
+        jQuery(this).click(function() {
+            if (jQuery(this).attr('id') == 'post_inherit_none') {
+                jQuery('#postaddress').show('slow');
+            } else {
+                jQuery('#postaddress').hide();
+            }
+        })
+    })
+
+    jQuery('#subscription_period :checked').click();
+    jQuery('#deliveryChoice :checked').click();
+    jQuery('#addressChoice :checked').click();
+    */
+
+    var qr = $('#qrcode');
+    qr.click(function(e) {
+        e.preventDefault();
+        if ($('#showQR').length) {
+            $('#showQR').remove();
+        }
+        $('<div/>').
+            attr({
+                id:'showQR'
+            }).
+            html('<p class="txt-c"><img width="272" height="272" class="qr-img" src="' + qr.attr('href') + '" /></p>' +
+            '<p>Сфотографируйте это изображение камерой мобильного телефона, и он сохранит данный контакт в вашу телефонную книгу. Некоторые модели требуют установки дополнительного приложения.</p>').
+            appendTo(document.body).
+            dialog({
+                title:qr.attr('title'),
+                width:400,
+                modal:true,
+                dialogClass:'qrDialog'
+            })
+    })
+});
+
+/**
+ * верхнее меню
+ */
+function showexmenu(n, user) {
+    /*if (arguments.length == 3) {
+        console.log(arguments[2].event)
+        if (arguments[2].which == 1) alert("Mouse Middle");console.log(arguments[2].which); return false;
+    }*/
+    if (!$("#m" + n).hasClass('default')) {
+        $('.exsubmenu').hide().parents('li').removeClass('default');
+        $("#s" + n).slideToggle();
+        $("#m" + n).addClass('default');
+    }
+    if (user) {
+        $.cookie("acp_part", n, {
+            domain: location.hostname,
+            path: '/'
+        });
+    }
+}
+
+$(document).ready(function(){
+/* Unfortunately no, Javascript wont have access to that sort of control for security reasons as it would be wide open for abuse.
+    $('.exmenu li a').mousedown( function(e){
+        if(e.which == 2) {
+            if (e.preventDefault)
+                e.preventDefault();
+            else
+                e.returnValue= false;
+            return false;
+        }
+
+    });*/
+
+    /*(Блок полезных советов MCP Begin) Получаем случайный совет JSON*/
+    if ($('.tooltip-block').hasClass("k-s-opened")) {
+
+        var jsn = $.getJSON(
+            "/main/getAdvice_ajax/?ajax=1",
+            function(data) {
+                $('.tips-wrapper span').html(data.js.tip_data.text);
+                var idtips = ['data.js.tip_data.id'];
+            });
+    }
+    /*Оновляем случайный совет JSON
+    $('.refresh-tip').click(function() {
+
+        var jsn = $.getJSON(
+            "/main/getAdvice_ajax/?ajax=1",
+            function(data) {
+                $('.tips-wrapper span').html(data.js.tip_data.text);
+                //console.log(data.js.tip_data.text);
+            }
+        );
+        $('.tips-wrapper span').fadeOut(10, loadContent);
+        $('#load').remove();
+        $('.tips-wrapper span').append('<span id="load">LOADING...</span>');
+        $('#load').fadeIn('normal');
+        function loadContent() {
+            $('.tips-wstTESTrapper span').load(jsn, '', showNewContent())
+        }
+
+        function showNewContent() {
+            $('.tips-wrapper span').fadeIn(350, hideLoader());
+        }
+
+        function hideLoader() {
+            $('#load').fadeOut('normal');
+        }
+
+        return false;
+    });
+    /если открыто то сворачиваем не обновляя совет
+    $('#tooltip-block_title').click(function() {
+        if ($('.tooltip-block').hasClass("k-s-opened")) {
+            var jsn = $.getJSON(
+                "/main/getAdvice_ajax/?ajax=1",
+                function(data) {
+                    $('.tips-wrapper span').html(data.js.tip_data.text);
+                    //console.log(data.js.tip_data.text);
+                }
+            );
+            $('.tips-wrapper span').fadeOut(10, loadContent);
+            $('#load').remove();
+            $('.tips-wrapper span').append('<span id="load">LOADING...</span>');
+            $('#load').fadeIn('normal');
+            function loadContent() {
+                $('.tips-wstTESTrapper span').load(jsn, '', showNewContent())
+            }
+
+            function showNewContent() {
+               $('.tips-wrapper span').fadeIn(350, hideLoader());
+            }
+
+            function hideLoader() {
+                $('#load').fadeOut('normal');
+            }
+
+            return false;
+        }
+        else {
+            return false;
+        }
+    });
+    /*Блок полезных советов MCP End*/
+
+
+    $("[data-domains]", '#sidebar2').each(function(){
+        var domains = $(this).data("domains").split(",");
+        $(this).text(domains[Math.floor(Math.random()* domains.length)]);
+    });
+
+});
+
+$(function(){
+	$("a").click(function(){
+		var a_href = $(this).attr('href');
+		if(a_href != null){
+			if(a_href[0] == '#'){
+				location.href = a_href;
+			} else {
+				if($("#tabs").length != 0 && $(".ui-tabs-panel", "#tabs").length != 0){
+					var tab_id = /#(.*)$/g.exec(a_href);
+					$("a[href=#"+tab_id+"]").click();
+				}
+			}
+		}
+	});
+});
+
+
+
+/**
+ *
+ *  Base64 encode / decode
+ *  http://www.webtoolkit.info/
+ *
+ **/
+var Base64 = {
+
+// private property
+    _keyStr : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+
+// public method for encoding
+    encode : function (input) {
+        var output = "";
+        var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+        var i = 0;
+
+        input = Base64._utf8_encode(input);
+
+        while (i < input.length) {
+
+            chr1 = input.charCodeAt(i++);
+            chr2 = input.charCodeAt(i++);
+            chr3 = input.charCodeAt(i++);
+
+            enc1 = chr1 >> 2;
+            enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+            enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+            enc4 = chr3 & 63;
+
+            if (isNaN(chr2)) {
+                enc3 = enc4 = 64;
+            } else if (isNaN(chr3)) {
+                enc4 = 64;
+            }
+
+            output = output +
+                this._keyStr.charAt(enc1) + this._keyStr.charAt(enc2) +
+                this._keyStr.charAt(enc3) + this._keyStr.charAt(enc4);
+
+        }
+
+        return output;
+    },
+
+// public method for decoding
+    decode : function (input) {
+        var output = "";
+        var chr1, chr2, chr3;
+        var enc1, enc2, enc3, enc4;
+        var i = 0;
+
+        input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+
+        while (i < input.length) {
+
+            enc1 = this._keyStr.indexOf(input.charAt(i++));
+            enc2 = this._keyStr.indexOf(input.charAt(i++));
+            enc3 = this._keyStr.indexOf(input.charAt(i++));
+            enc4 = this._keyStr.indexOf(input.charAt(i++));
+
+            chr1 = (enc1 << 2) | (enc2 >> 4);
+            chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+            chr3 = ((enc3 & 3) << 6) | enc4;
+
+            output = output + String.fromCharCode(chr1);
+
+            if (enc3 != 64) {
+                output = output + String.fromCharCode(chr2);
+            }
+            if (enc4 != 64) {
+                output = output + String.fromCharCode(chr3);
+            }
+
+        }
+
+        output = Base64._utf8_decode(output);
+
+        return output;
+
+    },
+
+// private method for UTF-8 encoding
+    _utf8_encode : function (string) {
+        string = string.replace(/\r\n/g,"\n");
+        var utftext = "";
+
+        for (var n = 0; n < string.length; n++) {
+
+            var c = string.charCodeAt(n);
+
+            if (c < 128) {
+                utftext += String.fromCharCode(c);
+            }
+            else if((c > 127) && (c < 2048)) {
+                utftext += String.fromCharCode((c >> 6) | 192);
+                utftext += String.fromCharCode((c & 63) | 128);
+            }
+            else {
+                utftext += String.fromCharCode((c >> 12) | 224);
+                utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+                utftext += String.fromCharCode((c & 63) | 128);
+            }
+
+        }
+
+        return utftext;
+    },
+
+// private method for UTF-8 decoding
+    _utf8_decode : function (utftext) {
+        var string = "";
+        var i = 0;
+        var c = c1 = c2 = 0;
+
+        while ( i < utftext.length ) {
+
+            c = utftext.charCodeAt(i);
+
+            if (c < 128) {
+                string += String.fromCharCode(c);
+                i++;
+            }
+            else if((c > 191) && (c < 224)) {
+                c2 = utftext.charCodeAt(i+1);
+                string += String.fromCharCode(((c & 31) << 6) | (c2 & 63));
+                i += 2;
+            }
+            else {
+                c2 = utftext.charCodeAt(i+1);
+                c3 = utftext.charCodeAt(i+2);
+                string += String.fromCharCode(((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63));
+                i += 3;
+            }
+
+        }
+
+        return string;
+    }
+
+}
+
+function decodeURL(url) {
+
+    url = decodeURIComponent(url);
+
+    var split = url.split(/:/);
+    var resSplit = [];
+
+    var resUrl = '';
+
+    for (var a=0; a<split.length; a++) {
+
+        if (split[a] == '/') {
+            continue;
+        }
+
+        resSplit.push(split[a]);
+
+        var split2 = split[a].split(/\|/);
+        //console.log(split2);
+
+        resUrl += ('/' + Base64.decode(split2[0]));
+
+        //console.log(split[a]);
+    }
+
+    return resUrl;
+}
+
+
+function encodeURL(url) {
+    var split = url.split(/\//);
+    var resSplit = [];
+    var resUrl = '';
+
+    for (var a=0; a<split.length; a++) {
+
+        if (split[a] == '/') {
+            continue;
+        }
+
+        resSplit.push(split[a]);
+
+        var split2 = split[a].split(/\|/);
+        //console.log(split2);
+
+        resUrl += (':' + Base64.encode(split2[0]) + '|utf-8');
+
+        //console.log(split[a]);
+    }
+    //console.log(resUrl);
+
+    return resUrl;
+
+}
+
+function replaceServerDateformat(el, mode){
+    // дату лучше обрабатывать на сервере;
+    // но мы реализуем через фронтенд: создали дополнительное поле type=hidden в нем храним серверную
+    $(el).val($(el).prev().val().replace(/(\d{4})-(\d{2})-(\d{2})/, "$3.$2.$1"));
+}
+
+function acp_customer_id(){
+    return location.search.split('?customer_id=')[1];
+}
+
+function acp_finance_toogle_invoice_status(customerId,invoiceId){
+    var prm = new Promise(function (okFunc, failFunc){
+        $.ajax({
+            method: "POST",
+            url: "/accountsAjax/toggleInvoiceStatus/?ajax=1",
+            data: { customer_id: customerId, invoice: invoiceId},
+            success: okFunc,
+            fail: failFunc
+        });
+    });
+
+    prm.then(function (data, textStatus, jqXHR ) {
+        var response =  JSON.parse(data);
+        if (1 == response.js.status) {
+            var selector = 'tr[invoiceid='.concat(response.js.invoice).concat('] .bool-cell');
+            var trs = $(selector);
+
+            if (trs.length) {
+                trs.text(response.js.new_status ? 'y' : 'n');
+                trs.toggleClass("n");
+                trs.toggleClass("y");
+            }
+        } else {
+            alert(response.js.text);
+        }
+
+
+    }, function (){
+        alert('Ошибка при изменении статуса счёта');
+    });
+}
